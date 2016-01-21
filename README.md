@@ -114,11 +114,13 @@ This produces the output:
 
 TINYEXPR defines only five functions:
 
+```C
     double te_interp(const char *expression, int *error);
     te_expr *te_compile(const char *expression, const te_variable *lookup, int lookup_len, int *error);
     double te_eval(te_expr *n);
     void te_print(const te_expr *n);
     void te_free(te_expr *n);
+```
 
 **te_interp** takes an expression and immediately returns the result of it. If
 an error pointer is passed in, *te_interp* will set it to 0 for success or
