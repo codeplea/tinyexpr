@@ -24,6 +24,7 @@ the standard C math functions and runtime binding of variables.
 
 Here is a minimal example to evaluate an expression at runtime.
 
+```C
     #include "tinyexpr.h"
     #include <stdio.h>
 
@@ -34,6 +35,7 @@ Here is a minimal example to evaluate an expression at runtime.
         printf("The expression:\n\t%s\nevaluates to:\n\t%f\n", c, r);
         return 0;
     }
+```
 
 
 That produces the following output:
@@ -49,6 +51,7 @@ That produces the following output:
 Here is an example that will evaluate an expression passed in from the command
 line. It also does error checking and binds the variables *x* and *y*.
 
+```C
     #include "tinyexpr.h"
     #include <stdio.h>
 
@@ -88,6 +91,7 @@ line. It also does error checking and binds the variables *x* and *y*.
 
         return 0;
     }
+```
 
 
 This produces the output:
@@ -123,7 +127,9 @@ errors, just pass in 0.
 
 **te_interp example:**
 
+```C
     double x = te_interp("5+5", 0);
+```
 
 **te_compile** will compile an expression with unbound variables, which will
 be suitable to evaluate later. **te_eval** can then be called on the compiled
@@ -132,6 +138,7 @@ should be called after you're finished.
 
 **te_compile example:**
 
+```C
     double x, y;
     te_variable vars[] = {{"x", &x}, {"y", &y}};
 
@@ -147,6 +154,7 @@ should be called after you're finished.
     }
 
     te_free(expr);
+```
 
 **te_print** will display some (possibly not so) useful debugging
 information about the return value of *te_compile*.
