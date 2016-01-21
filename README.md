@@ -193,7 +193,7 @@ Here is some example performance numbers taken from the included
 *benchmark.c* program:
 
 | Expression | te_eval time | native C time | slowdown  |
-| ------------- |-------------| -----|
+| :------------- |-------------:| -----:|----:|
 | sqrt(a^1.5+a^2.5) | 15,641 ms | 14,478 ms | 8% slower |
 | a+5 | 765 ms | 563 ms | 36% slower |
 | a+(5*2) | 765 ms | 563 ms | 36% slower |
