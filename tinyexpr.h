@@ -61,7 +61,7 @@ double te_interp(const char *expression, int *error);
 te_expr *te_compile(const char *expression, const te_variable *lookup, int lookup_len, int *error);
 
 /* Evaluates the expression. */
-double te_eval(te_expr *n);
+double te_eval(const te_expr *n);
 
 /* Prints debugging information on the syntax tree. */
 void te_print(const te_expr *n);

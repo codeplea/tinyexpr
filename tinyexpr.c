@@ -306,7 +306,7 @@ static te_expr *expr(state *s) {
 }
 
 
-double te_eval(te_expr *n) {
+double te_eval(const te_expr *n) {
     double ret;
 
     if (n->bound) {
