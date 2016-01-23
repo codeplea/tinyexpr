@@ -56,6 +56,7 @@ static te_expr *new_expr(te_expr *l, te_expr *r) {
 
 
 void te_free(te_expr *n) {
+    if (!n) return;
     if (n->left) te_free(n->left);
     if (n->right) te_free(n->right);
     free(n);
@@ -232,7 +233,7 @@ static te_expr *base(state *s) {
         default:
             ret = new_expr(0, 0);
             s->type = TOK_ERROR;
-            ret->value = 1.0/0.0;
+            ret->value = 0.0/0.0;
             break;
     }
 
@@ -358,24 +359,30 @@ te_expr *te_compile(const char *expression, const te_variable *lookup, int looku
     next_token(&s);
     te_expr *root = expr(&s);
 
-
     if (s.type != TOK_END) {
-        if (error) *error = (s.next - s.start);
-        if (*error == 0) *error = 1;
+        te_free(root);
+        if (error) {
+            *error = (s.next - s.start);
+            if (*error == 0) *error = 1;
+        }
+        return 0;
     } else {
         optimize(root);
         if (error) *error = 0;
+        return root;
     }
-
-
-    return root;
 }
 
 
 double te_interp(const char *expression, int *error) {
     te_expr *n = te_compile(expression, 0, 0, error);
-    double ret = te_eval(n);
-    free(n);
+    double ret;
+    if (n) {
+        ret = te_eval(n);
+        free(n);
+    } else {
+        ret = 0.0/0.0;
+    }
     return ret;
 }
 

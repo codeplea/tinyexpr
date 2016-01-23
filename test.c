@@ -122,7 +122,26 @@ test_case errors[] = {
 };
 
 
-void test1() {
+const char *nans[] = {
+    "1+",
+    "1)",
+    "(1",
+    "1**1",
+    "1*2(+4",
+    "1*2(1+4",
+    "a+5",
+    "A+5",
+    "Aa+5",
+    "1^^5",
+    "1**5",
+    "sin(cos5",
+    "5+5error",
+    "5+5+error",
+};
+
+
+
+void test_results() {
     int i;
     for (i = 0; i < sizeof(cases) / sizeof(test_case); ++i) {
         const char *expr = cases[i].expr;
@@ -136,7 +155,7 @@ void test1() {
 }
 
 
-void test2() {
+void test_syntax() {
     int i;
     for (i = 0; i < sizeof(errors) / sizeof(test_case); ++i) {
         const char *expr = errors[i].expr;
@@ -150,7 +169,7 @@ void test2() {
 
 
 
-void test3() {
+void test_variables() {
 
     double x, y;
     te_variable lookup[] = {{"x", &x}, {"y", &y}};
@@ -185,6 +204,7 @@ void test3() {
 }
 
 
+
 #define cross_check(a, b) do {\
     expr = te_compile((a), &lookup, 1, &err);\
     lfequal(te_eval(expr), (b));\
@@ -192,7 +212,7 @@ void test3() {
     te_free(expr);\
 }while(0)
 
-void test4() {
+void test_functions() {
 
     double x;
     te_variable lookup = {"x", &x};
@@ -221,12 +241,26 @@ void test4() {
 }
 
 
+void test_nans() {
+    int i;
+    for (i = 0; i < sizeof(nans) / sizeof(const char*); ++i) {
+        const char *expr = nans[i];
+
+        int err;
+        const double r = te_interp(expr, &err);
+        lok(err);
+        lok(r != r);
+    }
+}
+
+
 int main(int argc, char *argv[])
 {
-    lrun("Results", test1);
-    lrun("Syntax", test2);
-    lrun("Bind", test3);
-    lrun("Functions", test4);
+    lrun("Results", test_results);
+    lrun("Syntax", test_syntax);
+    lrun("Variables", test_variables);
+    lrun("Functions", test_functions);
+    lrun("NaNs", test_nans);
     lresults();
 
     return lfails != 0;

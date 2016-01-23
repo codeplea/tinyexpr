@@ -32,7 +32,7 @@ int main(int argc, char *argv[])
         printf("\t%*s^\nError near here", err-1, "");
     }
 
-    /* te_free should always be called after te_compile. */
+    /* te_free is safe to call on null. */
     te_free(n);
 
     return 0;

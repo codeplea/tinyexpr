@@ -48,29 +48,23 @@ typedef struct {
 } te_variable;
 
 
-/* Note on error handling:
- * If the parser encounters an error, it will still return
- * an expression up to that point (which may be worthless or useful.
- * If the error pointer parameter is passed in and not null, the
- * parser will set it to roughly the index of the error in the
- * input expression. If there is no error, the parse sets
- * the error pointer to 0.
- */
-
 
 /* Parses the input expression, evaluates it, and frees it. */
 double te_interp(const char *expression, int *error);
 
 /* Parses the input expression and binds variables. */
+/* Returns NULL on error. */
 te_expr *te_compile(const char *expression, const te_variable *lookup, int lookup_len, int *error);
 
 /* Evaluates the expression. */
+/* Returns NaN on error. */
 double te_eval(const te_expr *n);
 
 /* Prints debugging information on the syntax tree. */
 void te_print(const te_expr *n);
 
 /* Frees the expression. */
+/* This is safe to call on NULL pointers. */
 void te_free(te_expr *n);
 
 

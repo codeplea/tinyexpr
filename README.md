@@ -86,7 +86,7 @@ line. It also does error checking and binds the variables *x* and *y*.
             printf("\t%*s^\nError near here", err-1, "");
         }
 
-        /* te_free should always be called after te_compile. */
+        /* te_free is safe to call on null. */
         te_free(n);
 
         return 0;
@@ -234,9 +234,6 @@ In addition, the following C math functions are also supported:
 ##Hints
 
 - All functions/types start with the letters *te*.
-
-- Remember to always call *te_free* on the result of *te_compile*, even if
-  there is an error.
 
 - If there is an error, you can usually still evaluate the first part of the
   expression.  This may or may not be useful to you.
