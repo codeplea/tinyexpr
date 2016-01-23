@@ -125,7 +125,7 @@ TINYEXPR defines only five functions:
 **te_interp** takes an expression and immediately returns the result of it. If
 an error pointer is passed in, *te_interp* will set it to 0 for success or
 approximately the position of the error for failure. If you don't care about
-errors, just pass in 0.
+errors, just pass in 0. *te_interp* will return NaN for bad expressions regardless.
 
 **te_interp example:**
 
