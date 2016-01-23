@@ -162,8 +162,13 @@ void test_syntax() {
         const int e = errors[i].answer;
 
         int err;
-        te_interp(expr, &err);
+        const double r = te_interp(expr, &err);
         lequal(err, e);
+        lok(r != r);
+
+        te_expr *n = te_compile(expr, 0, 0, &err);
+        lequal(err, e);
+        lok(!n);
     }
 }
 
