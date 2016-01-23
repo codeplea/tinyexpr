@@ -123,26 +123,6 @@ test_case errors[] = {
 };
 
 
-const char *nans[] = {
-    "",
-    "1+",
-    "1)",
-    "(1",
-    "1**1",
-    "1*2(+4",
-    "1*2(1+4",
-    "a+5",
-    "A+5",
-    "Aa+5",
-    "1^^5",
-    "1**5",
-    "sin(cos5",
-    "5+5error",
-    "5+5+error",
-};
-
-
-
 void test_results() {
     int i;
     for (i = 0; i < sizeof(cases) / sizeof(test_case); ++i) {
@@ -171,6 +151,9 @@ void test_syntax() {
         te_expr *n = te_compile(expr, 0, 0, &err);
         lequal(err, e);
         lok(!n);
+
+        const double k = te_interp(expr, 0);
+        lok(k != k);
     }
 }
 
@@ -248,26 +231,12 @@ void test_functions() {
 }
 
 
-void test_nans() {
-    int i;
-    for (i = 0; i < sizeof(nans) / sizeof(const char*); ++i) {
-        const char *expr = nans[i];
-
-        int err;
-        const double r = te_interp(expr, &err);
-        lok(err);
-        lok(r != r);
-    }
-}
-
-
 int main(int argc, char *argv[])
 {
     lrun("Results", test_results);
     lrun("Syntax", test_syntax);
     lrun("Variables", test_variables);
     lrun("Functions", test_functions);
-    lrun("NaNs", test_nans);
     lresults();
 
     return lfails != 0;
