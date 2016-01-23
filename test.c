@@ -107,6 +107,7 @@ test_case cases[] = {
 
 
 test_case errors[] = {
+    {"", 1},
     {"1+", 2},
     {"1)", 2},
     {"(1", 2},
@@ -123,6 +124,7 @@ test_case errors[] = {
 
 
 const char *nans[] = {
+    "",
     "1+",
     "1)",
     "(1",
