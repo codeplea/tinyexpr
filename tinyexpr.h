@@ -26,6 +26,10 @@
 #define __TINYEXPR_H__
 
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 
 typedef double (*te_fun1)(double);
 typedef double (*te_fun2)(double, double);
@@ -70,5 +74,8 @@ void te_print(const te_expr *n);
 void te_free(te_expr *n);
 
 
+#ifdef __cplusplus
+}
+#endif
 
 #endif /*__TINYEXPR_H__*/
