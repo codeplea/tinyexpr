@@ -57,7 +57,7 @@ void bench(const char *expr, te_fun1 func) {
     /*Million floats per second input.*/
     printf(" %.5g", d);
     if (nelapsed)
-        printf("\t%5dms\t%5lumfps\n", nelapsed, loops * loops / nelapsed / 1000);
+        printf("\t%5dms\t%5dmfps\n", nelapsed, loops * loops / nelapsed / 1000);
     else
         printf("\tinf\n");
 
@@ -79,7 +79,7 @@ void bench(const char *expr, te_fun1 func) {
     /*Million floats per second input.*/
     printf(" %.5g", d);
     if (eelapsed)
-        printf("\t%5dms\t%5lumfps\n", eelapsed, loops * loops / eelapsed / 1000);
+        printf("\t%5dms\t%5dmfps\n", eelapsed, loops * loops / eelapsed / 1000);
     else
         printf("\tinf\n");
 
