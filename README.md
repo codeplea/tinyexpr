@@ -37,8 +37,8 @@ TINYEXPR defines only four functions:
 ```C
     double te_interp(const char *expression, int *error);
     te_expr *te_compile(const char *expression, const te_variable *variables, int var_count, int *error);
-    double te_eval(const te_expr *n);
-    void te_free(te_expr *n);
+    double te_eval(const te_expr *expr);
+    void te_free(te_expr *expr);
 ```
 
 ##te_interp
@@ -58,8 +58,8 @@ of the parse error on failure, and set `*error` to 0 on success.
     int error;
 
     double a = te_interp("(5+5)", 0); /* Returns 10. */
-    double a = te_interp("(5+5)", &error); /* Returns 10, error is set to 0. */
-    double b = te_interp("(5+5", &error); /* Returns NaN, error is set to 4. */
+    double b = te_interp("(5+5)", &error); /* Returns 10, error is set to 0. */
+    double c = te_interp("(5+5", &error); /* Returns NaN, error is set to 4. */
 ```
 
 ##te_compile, te_eval, te_free
