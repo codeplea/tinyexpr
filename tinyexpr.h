@@ -50,6 +50,7 @@ typedef struct {
 
 
 /* Parses the input expression, evaluates it, and frees it. */
+/* Returns NaN on error. */
 double te_interp(const char *expression, int *error);
 
 /* Parses the input expression and binds variables. */
@@ -57,7 +58,6 @@ double te_interp(const char *expression, int *error);
 te_expr *te_compile(const char *expression, const te_variable *lookup, int lookup_len, int *error);
 
 /* Evaluates the expression. */
-/* Returns NaN on error. */
 double te_eval(const te_expr *n);
 
 /* Prints debugging information on the syntax tree. */
