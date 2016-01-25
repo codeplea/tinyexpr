@@ -26,30 +26,91 @@ Here is a minimal example to evaluate an expression at runtime.
 
 ```C
     #include "tinyexpr.h"
-    #include <stdio.h>
-
-    int main(int argc, char *argv[])
-    {
-        const char *c = "sqrt(5^2+7^2+11^2+(8-2)^2)";
-        double r = te_interp(c, 0);
-        printf("The expression:\n\t%s\nevaluates to:\n\t%f\n", c, r);
-        return 0;
-    }
+    printf("%f\n", te_interp("5*5", 0)); /* Prints 25. */
 ```
 
 
-That produces the following output:
+##Usage
 
-    The expression:
-            sqrt(5^2+7^2+11^2+(8-2)^2)
-    evaluates to:
-            15.198684
+TINYEXPR defines only four functions:
 
+```C
+    double te_interp(const char *expression, int *error);
+    te_expr *te_compile(const char *expression, const te_variable *variables, int var_count, int *error);
+    double te_eval(const te_expr *n);
+    void te_free(te_expr *n);
+```
+
+##te_interp
+```C
+    double te_interp(const char *expression, int *error);
+```
+
+`te_interp()` takes an expression and immediately returns the result of it. If there
+is a parse error, `te_interp()` returns NaN.
+
+If the `error` pointer argument is not 0, then `te_interp()` will set `*error` to the position
+of the parse error on failure, and set `*error` to 0 on success.
+
+**example usage:**
+
+```C
+    int error;
+
+    double a = te_interp("(5+5)", 0); /* Returns 10. */
+    double a = te_interp("(5+5)", &error); /* Returns 10, error is set to 0. */
+    double b = te_interp("(5+5", &error); /* Returns NaN, error is set to 4. */
+```
+
+##te_compile, te_eval, te_free
+```C
+    te_expr *te_compile(const char *expression, const te_variable *lookup, int lookup_len, int *error);
+    double te_eval(const te_expr *n);
+    void te_free(te_expr *n);
+```
+
+Give `te_compile()` an expression with unbound variables and a list of
+variable names and pointers. `te_compile()` will return a `te_expr*` which can
+be evaluated later using `te_eval()`. On failure, `te_compile()` will return 0
+and optionally set the passed in `*error` to the location of the parse error.
+
+You may also compile expressions without variables by passing `te_compile()`'s second
+and thrid arguments as 0.
+
+Give `te_eval()` a `te_expr*` from `te_compile()`. `te_eval()` will evaluate the expression
+using the current variable values.
+
+After you're finished, make sure to call `te_free()`.
+
+**example usage:**
+
+```C
+    double x, y;
+    /* Store variable names and pointers. */
+    te_variable vars[] = {{"x", &x}, {"y", &y}};
+
+    int err;
+    /* Compile the expression with variables. */
+    te_expr *expr = te_compile("sqrt(x^2+y^2)", vars, 2, &err);
+
+    if (expr) {
+        x = 3; y = 4;
+        const double h1 = te_eval(expr); /* Returns 5. */
+
+        x = 5; y = 12;
+        const double h2 = te_eval(expr); /* Returns 13. */
+
+        te_free(expr);
+    } else {
+        printf("Parse error at %d\n", err);
+    }
+
+```
 
 ##Longer Example
 
-Here is an example that will evaluate an expression passed in from the command
-line. It also does error checking and binds the variables *x* and *y*.
+Here is a complete example that will evaluate an expression passed in from the command
+line. It also does error checking and binds the variables `x` and `y` to *3* and *4*, respectively.
 
 ```C
     #include "tinyexpr.h"
@@ -58,7 +119,7 @@ line. It also does error checking and binds the variables *x* and *y*.
     int main(int argc, char *argv[])
     {
         if (argc < 2) {
-            printf("Usage: example2 \"expression\"\n", argv[0]);
+            printf("Usage: example2 \"expression\"\n");
             return 0;
         }
 
@@ -74,20 +135,17 @@ line. It also does error checking and binds the variables *x* and *y*.
         int err;
         te_expr *n = te_compile(expression, vars, 2, &err);
 
-        if (!err) {
+        if (n) {
             /* The variables can be changed here, and eval can be called as many
              * times as you like. This is fairly efficient because the parsing has
              * already been done. */
-            x = 3;
-            y = 4;
-            const double r = te_eval(n); printf("Result:\n\t%f\n", r); }
-        else {
+            x = 3; y = 4;
+            const double r = te_eval(n); printf("Result:\n\t%f\n", r);
+            te_free(n);
+        } else {
             /* Show the user where the error is at. */
             printf("\t%*s^\nError near here", err-1, "");
         }
-
-        /* te_free is safe to call on null. */
-        te_free(n);
 
         return 0;
     }
@@ -110,75 +168,25 @@ This produces the output:
                 5.000000
 
 
-##Usage
-
-TINYEXPR defines only five functions:
-
-```C
-    double te_interp(const char *expression, int *error);
-    te_expr *te_compile(const char *expression, const te_variable *lookup, int lookup_len, int *error);
-    double te_eval(const te_expr *n);
-    void te_print(const te_expr *n);
-    void te_free(te_expr *n);
-```
-
-**te_interp** takes an expression and immediately returns the result of it. If
-an error pointer is passed in, *te_interp* will set it to 0 for success or
-approximately the position of the error for failure. If you don't care about
-errors, just pass in 0. *te_interp* will return NaN for bad expressions regardless.
-
-**te_interp example:**
-
-```C
-    double x = te_interp("5+5", 0);
-```
-
-**te_compile** will compile an expression with unbound variables, which will
-be suitable to evaluate later. **te_eval** can then be called on the compiled
-expression repeatedly to evaluate it with different variable values. **te_free**
-should be called after you're finished.
-
-**te_compile example:**
-
-```C
-    double x, y;
-    te_variable vars[] = {{"x", &x}, {"y", &y}};
-
-    int err;
-    te_expr *expr = te_compile("sqrt(x^2+y^2)", vars, 2, &err);
-
-    if (!err) {
-        x = 3; y = 4;
-        const double h1 = te_eval(expr);
-
-        x = 5; y = 7;
-        const double h2 = te_eval(expr);
-    }
-
-    te_free(expr);
-```
-
-**te_print** will display some (possibly not so) useful debugging
-information about the return value of *te_compile*.
 
 
 ##How it works
 
-**te_compile** uses a simple recursive descent parser to compile your
-expression into a syntax tree. For example, the expression "sin x + 1/4"
+`te_compile()` uses a simple recursive descent parser to compile your
+expression into a syntax tree. For example, the expression `"sin x + 1/4"`
 parses as:
 
 ![example syntax tree](doc/e1.png?raw=true)
 
-**te_compile** also automatically prunes constant branches. In this example,
-the compiled expression returned by *te_compile* is:
+`te_compile()` also automatically prunes constant branches. In this example,
+the compiled expression returned by `te_compile()` would become:
 
 ![example syntax tree](doc/e2.png?raw=true)
 
-**te_eval** will automatically load in any variables by their pointer, then evaluate
+`te_eval()` will automatically load in any variables by their pointer, and then evaluate
 and return the result of the expression.
 
-**te_free** should always be called when you're done with the compiled expression.
+`te_free()` should always be called when you're done with the compiled expression.
 
 
 ##Speed
@@ -186,11 +194,11 @@ and return the result of the expression.
 
 TINYEXPR is pretty fast compared to C when the expression is short, when the
 expression does hard calculations (e.g. exponentiation), and when some of the
-work can be simplified by *te_compile*. TINYEXPR is slow compared to C when the
+work can be simplified by `te_compile()`. TINYEXPR is slow compared to C when the
 expression is long and involves only basic arithmetic.
 
 Here is some example performance numbers taken from the included
-*benchmark.c* program:
+**benchmark.c** program:
 
 | Expression | te_eval time | native C time | slowdown  |
 | :------------- |-------------:| -----:|----:|
@@ -234,9 +242,6 @@ In addition, the following C math functions are also supported:
 ##Hints
 
 - All functions/types start with the letters *te*.
-
-- If there is an error, you can usually still evaluate the first part of the
-  expression.  This may or may not be useful to you.
 
 - To allow constant optimization, surround constant expressions in parentheses.
   For example "x+(1+5)" will evaluate the "(1+5)" expression at compile time and
