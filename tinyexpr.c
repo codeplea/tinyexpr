@@ -379,7 +379,7 @@ double te_interp(const char *expression, int *error) {
     double ret;
     if (n) {
         ret = te_eval(n);
-        free(n);
+        te_free(n);
     } else {
         ret = 0.0/0.0;
     }
