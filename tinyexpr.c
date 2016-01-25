@@ -350,11 +350,11 @@ static void optimize(te_expr *n) {
 }
 
 
-te_expr *te_compile(const char *expression, const te_variable *lookup, int lookup_len, int *error) {
+te_expr *te_compile(const char *expression, const te_variable *variables, int var_count, int *error) {
     state s;
     s.start = s.next = expression;
-    s.lookup = lookup;
-    s.lookup_len = lookup_len;
+    s.lookup = variables;
+    s.lookup_len = var_count;
 
     next_token(&s);
     te_expr *root = expr(&s);
