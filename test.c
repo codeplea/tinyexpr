@@ -123,6 +123,14 @@ test_case errors[] = {
 };
 
 
+const char *nans[] = {
+    "0/0",
+    "1%0",
+    "1%(1%0)",
+    "(1%0)%1",
+};
+
+
 void test_results() {
     int i;
     for (i = 0; i < sizeof(cases) / sizeof(test_case); ++i) {
@@ -157,6 +165,25 @@ void test_syntax() {
     }
 }
 
+
+void test_nans() {
+    int i;
+    for (i = 0; i < sizeof(nans) / sizeof(const char *); ++i) {
+        const char *expr = nans[i];
+
+        int err;
+        const double r = te_interp(expr, &err);
+        lequal(err, 0);
+        lok(r != r);
+
+        te_expr *n = te_compile(expr, 0, 0, &err);
+        lok(n);
+        lequal(err, 0);
+        const double c = te_eval(n);
+        lok(c != c);
+        te_free(n);
+    }
+}
 
 
 void test_variables() {
@@ -235,6 +262,7 @@ int main(int argc, char *argv[])
 {
     lrun("Results", test_results);
     lrun("Syntax", test_syntax);
+    lrun("NaNs", test_nans);
     lrun("Variables", test_variables);
     lrun("Functions", test_functions);
     lresults();
