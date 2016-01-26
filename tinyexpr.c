@@ -130,11 +130,6 @@ static double add(double a, double b) {return a + b;}
 static double sub(double a, double b) {return a - b;}
 static double mul(double a, double b) {return a * b;}
 static double divide(double a, double b) {return a / b;}
-static double mod(double a, double b) {
-    if (a!=a || b!=b) return 0.0/0.0;
-    if (((long long)b) == 0) return 0.0/0.0;
-    return ((long long)a % (long long)b);
-}
 static double negate(double a) {return -a;}
 
 
@@ -185,7 +180,7 @@ void next_token(state *s) {
                     case '*': s->type = TOK_FUNCTION2; s->f2 = mul; break;
                     case '/': s->type = TOK_FUNCTION2; s->f2 = divide; break;
                     case '^': s->type = TOK_FUNCTION2; s->f2 = pow; break;
-                    case '%': s->type = TOK_FUNCTION2; s->f2 = mod; break;
+                    case '%': s->type = TOK_FUNCTION2; s->f2 = fmod; break;
                     case '(': s->type = TOK_OPEN; break;
                     case ')': s->type = TOK_CLOSE; break;
                     case ' ': case '\t': case '\n': case '\r': break;
@@ -285,7 +280,7 @@ static te_expr *term(state *s) {
     /* <term>      =    <factor> {("*" | "/" | "%") <factor>} */
     te_expr *ret = factor(s);
 
-    while (s->type == TOK_FUNCTION2 && (s->f2 == mul || s->f2 == divide || s->f2 == mod)) {
+    while (s->type == TOK_FUNCTION2 && (s->f2 == mul || s->f2 == divide || s->f2 == fmod)) {
         te_fun2 t = s->f2;
         next_token(s);
         ret = new_expr(ret, factor(s));
