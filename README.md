@@ -1,11 +1,11 @@
-#TINYEXPR
+#TinyExpr
 
 
-TINYEXPR is a very small recursive descent parser and evaluation engine for
+TinyExpr is a very small recursive descent parser and evaluation engine for
 math expressions. It's handy when you want to add the ability to evaluation
 math expressions at runtime without adding a bunch of cruft to you project.
 
-In addition to the standard math operators and precedence, TINYEXPR also supports
+In addition to the standard math operators and precedence, TinyExpr also supports
 the standard C math functions and runtime binding of variables.
 
 ##Features
@@ -32,7 +32,7 @@ Here is a minimal example to evaluate an expression at runtime.
 
 ##Usage
 
-TINYEXPR defines only four functions:
+TinyExpr defines only four functions:
 
 ```C
     double te_interp(const char *expression, int *error);
@@ -192,9 +192,9 @@ and return the result of the expression.
 ##Speed
 
 
-TINYEXPR is pretty fast compared to C when the expression is short, when the
+TinyExpr is pretty fast compared to C when the expression is short, when the
 expression does hard calculations (e.g. exponentiation), and when some of the
-work can be simplified by `te_compile()`. TINYEXPR is slow compared to C when the
+work can be simplified by `te_compile()`. TinyExpr is slow compared to C when the
 expression is long and involves only basic arithmetic.
 
 Here is some example performance numbers taken from the included
@@ -212,7 +212,7 @@ Here is some example performance numbers taken from the included
 
 ##Grammar
 
-TINYEXPR parses the following grammar:
+TinyExpr parses the following grammar:
 
     <expr>      =    <term> {("+" | "-") <term>}
     <term>      =    <factor> {("*" | "/" | "%") <factor>}
@@ -229,7 +229,7 @@ Valid variable names are any combination of the lower case letters *a* through
 
 ##Functions supported
 
-TINYEXPR supports addition (+), subtraction/negation (-), multiplication (\*),
+TinyExpr supports addition (+), subtraction/negation (-), multiplication (\*),
 division (/), exponentiation (^) and modulus (%) with the normal operator
 precedence (the one exception being that exponentiation is evaluated
 left-to-right).
@@ -246,7 +246,7 @@ In addition, the following C math functions are also supported:
 - To allow constant optimization, surround constant expressions in parentheses.
   For example "x+(1+5)" will evaluate the "(1+5)" expression at compile time and
   compile the entire expression as "x+6", saving a runtime calculation. The
-  parentheses are important, because TINYEXPR will not change the order of
-  evaluation. If you instead compiled "x+1+5" TINYEXPR will insist that "1" is
+  parentheses are important, because TinyExpr will not change the order of
+  evaluation. If you instead compiled "x+1+5" TinyExpr will insist that "1" is
   added to "x" first, and "5" is added the result second.
 
