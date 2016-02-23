@@ -94,7 +94,7 @@ static const te_variable functions[] = {
 };
 
 
-static const te_variable *find_function(const char *name, int len) {
+static const te_variable *find_builtin(const char *name, int len) {
     int imin = 0;
     int imax = sizeof(functions) / sizeof(te_variable) - 2;
 
@@ -116,7 +116,7 @@ static const te_variable *find_function(const char *name, int len) {
 }
 
 
-static const te_variable *find_var(const state *s, const char *name, int len) {
+static const te_variable *find_lookup(const state *s, const char *name, int len) {
     int i;
     if (!s->lookup) return 0;
     for (i = 0; i < s->lookup_len; ++i) {
@@ -158,8 +158,8 @@ void next_token(state *s) {
                 start = s->next;
                 while ((s->next[0] >= 'a' && s->next[0] <= 'z') || (s->next[0] >= '0' && s->next[0] <= '9')) s->next++;
 
-                const te_variable *var = find_var(s, start, s->next - start);
-                if (!var) var = find_function(start, s->next - start);
+                const te_variable *var = find_lookup(s, start, s->next - start);
+                if (!var) var = find_builtin(start, s->next - start);
 
                 if (!var) {
                     s->type = TOK_ERROR;
