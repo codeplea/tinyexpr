@@ -205,7 +205,7 @@ static te_expr *expr(state *s);
 static te_expr *power(state *s);
 
 static te_expr *base(state *s) {
-    /* <base>      =    <constant> | <variable> | <function-1> <power> | <function-2> "(" <expr> "," <expr> ")" | "(" <list> ")" */
+    /* <base>      =    <constant> | <variable> | <function-0> {"(" ")"} | <function-1> <power> | <function-2> "(" <expr> "," <expr> ")" | "(" <list> ")" */
     te_expr *ret;
 
     switch (s->type) {
@@ -225,6 +225,14 @@ static te_expr *base(state *s) {
             ret = new_expr(TE_FUNCTION0, 0, 0);
             ret->f0 = s->f0;
             next_token(s);
+            if (s->type == TOK_OPEN) {
+                next_token(s);
+                if (s->type != TOK_CLOSE) {
+                    s->type = TOK_ERROR;
+                } else {
+                    next_token(s);
+                }
+            }
             break;
 
         case TOK_FUNCTION1:

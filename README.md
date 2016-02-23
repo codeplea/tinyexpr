@@ -219,7 +219,7 @@ TinyExpr parses the following grammar:
     <term>      =    <factor> {("*" | "/" | "%") <factor>}
     <factor>    =    <power> {"^" <power>}
     <power>     =    {("-" | "+")} <base>
-    <base>      =    <constant> | <variable> | <function-1> <power> | <function-2> "(" <expr> "," <expr> ")" | "(" <list> ")"
+    <base>      =    <constant> | <variable> | <function-0> {"(" ")"} | <function-1> <power> | <function-2> "(" <expr> "," <expr> ")" | "(" <list> ")"
 
 In addition, whitespace between tokens is ignored.
 
