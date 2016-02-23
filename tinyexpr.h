@@ -31,20 +31,26 @@ extern "C" {
 #endif
 
 
+typedef double (*te_fun0)(void);
 typedef double (*te_fun1)(double);
 typedef double (*te_fun2)(double, double);
 
 
 typedef struct te_expr {
     struct te_expr *left, *right;
-    union {double value; te_fun1 f1; te_fun2 f2;};
-    const double *bound;
+    int type;
+    union {double value; const double *bound; te_fun0 f0; te_fun1 f1; te_fun2 f2;};
 } te_expr;
 
 
-typedef struct {
+
+
+enum {TE_FUNCTION0 = -1, TE_VARIABLE = 0, TE_FUNCTION1 = 1, TE_FUNCTION2 = 2};
+
+typedef struct te_variable {
     const char *name;
-    const double *value;
+    const void *value;
+    int type;
 } te_variable;
 
 
