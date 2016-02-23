@@ -29,7 +29,7 @@
 #include <stdio.h>
 
 
-enum {TOK_NULL, TOK_END, TOK_OPEN, TOK_CLOSE, TOK_NUMBER, TOK_ADD, TOK_SUB, TOK_MUL, TOK_DIV, TOK_FUNCTION1, TOK_FUNCTION2, TOK_VARIABLE, TOK_ERROR};
+enum {TOK_NULL, TOK_END, TOK_OPEN, TOK_CLOSE, TOK_NUMBER, TOK_INFIX, TOK_FUNCTION1, TOK_FUNCTION2, TOK_VARIABLE, TOK_SEP, TOK_ERROR};
 
 
 
@@ -65,28 +65,36 @@ void te_free(te_expr *n) {
 
 typedef struct {
     const char *name;
-    te_fun1 f1;
+    union {const void *v; double *value; te_fun1 f1; te_fun2 f2;};
+    int arity;
 } builtin;
 
 
+static const double pi = 3.14159265358979323846;
+static const double e  = 2.71828182845904523536;
+
 static const builtin functions[] = {
     /* must be in alphabetical order */
-    {"abs", fabs},
-    {"acos", acos},
-    {"asin", asin},
-    {"atan", atan},
-    {"ceil", ceil},
-    {"cos", cos},
-    {"cosh", cosh},
-    {"exp", exp},
-    {"floor", floor},
-    {"ln", log},
-    {"log", log10},
-    {"sin", sin},
-    {"sinh", sinh},
-    {"sqrt", sqrt},
-    {"tan", tan},
-    {"tanh", tanh},
+    {"abs", {fabs}, 1},
+    {"acos", {acos}, 1},
+    {"asin", {asin}, 1},
+    {"atan", {atan}, 1},
+    {"atan2", {atan2}, 2},
+    {"ceil", {ceil}, 1},
+    {"cos", {cos}, 1},
+    {"cosh", {cosh}, 1},
+    {"e", {&e}, 0},
+    {"exp", {exp}, 1},
+    {"floor", {floor}, 1},
+    {"ln", {log}, 1},
+    {"log", {log10}, 1},
+    {"pi", {&pi}, 0},
+    {"pow", {pow}, 2},
+    {"sin", {sin}, 1},
+    {"sinh", {sinh}, 1},
+    {"sqrt", {sqrt}, 1},
+    {"tan", {tan}, 1},
+    {"tanh", {tanh}, 1},
     {0}
 };
 
@@ -131,6 +139,7 @@ static double sub(double a, double b) {return a - b;}
 static double mul(double a, double b) {return a * b;}
 static double divide(double a, double b) {return a / b;}
 static double negate(double a) {return -a;}
+static double comma(double a, double b) {return b;}
 
 
 void next_token(state *s) {
@@ -152,7 +161,7 @@ void next_token(state *s) {
             if (s->next[0] >= 'a' && s->next[0] <= 'z') {
                 const char *start;
                 start = s->next;
-                while (s->next[0] >= 'a' && s->next[0] <= 'z') s->next++;
+                while ((s->next[0] >= 'a' && s->next[0] <= 'z') || (s->next[0] >= '0' && s->next[0] <= '9')) s->next++;
 
                 const double *var = find_var(s, start, s->next - start);
                 if (var) {
@@ -162,12 +171,20 @@ void next_token(state *s) {
                     if (s->next - start > 15) {
                         s->type = TOK_ERROR;
                     } else {
-                        s->type = TOK_FUNCTION1;
                         const builtin *f = find_function(start, s->next - start);
                         if (!f) {
                             s->type = TOK_ERROR;
                         } else {
-                            s->f1 = f->f1;
+                            if (f->arity == 0) {
+                                s->type = TOK_NUMBER;
+                                s->value = *f->value;
+                            } else if (f->arity == 1) {
+                                s->type = TOK_FUNCTION1;
+                                s->f1 = f->f1;
+                            } else if (f->arity == 2) {
+                                s->type = TOK_FUNCTION2;
+                                s->f2 = f->f2;
+                            }
                         }
                     }
                 }
@@ -175,14 +192,15 @@ void next_token(state *s) {
             } else {
                 /* Look for an operator or special character. */
                 switch (s->next++[0]) {
-                    case '+': s->type = TOK_FUNCTION2; s->f2 = add; break;
-                    case '-': s->type = TOK_FUNCTION2; s->f2 = sub; break;
-                    case '*': s->type = TOK_FUNCTION2; s->f2 = mul; break;
-                    case '/': s->type = TOK_FUNCTION2; s->f2 = divide; break;
-                    case '^': s->type = TOK_FUNCTION2; s->f2 = pow; break;
-                    case '%': s->type = TOK_FUNCTION2; s->f2 = fmod; break;
+                    case '+': s->type = TOK_INFIX; s->f2 = add; break;
+                    case '-': s->type = TOK_INFIX; s->f2 = sub; break;
+                    case '*': s->type = TOK_INFIX; s->f2 = mul; break;
+                    case '/': s->type = TOK_INFIX; s->f2 = divide; break;
+                    case '^': s->type = TOK_INFIX; s->f2 = pow; break;
+                    case '%': s->type = TOK_INFIX; s->f2 = fmod; break;
                     case '(': s->type = TOK_OPEN; break;
                     case ')': s->type = TOK_CLOSE; break;
+                    case ',': s->type = TOK_SEP; break;
                     case ' ': case '\t': case '\n': case '\r': break;
                     default: s->type = TOK_ERROR; break;
                 }
@@ -192,11 +210,12 @@ void next_token(state *s) {
 }
 
 
+static te_expr *list(state *s);
 static te_expr *expr(state *s);
 static te_expr *power(state *s);
 
 static te_expr *base(state *s) {
-    /* <base>      =    <constant> | <variable> | <function> <power> | "(" <expr> ")" */
+    /* <base>      =    <constant> | <variable> | <function-1> <power> | <function-2> "(" <expr> "," <expr> ")" | "(" <list> ")" */
     te_expr *ret;
 
     switch (s->type) {
@@ -219,9 +238,35 @@ static te_expr *base(state *s) {
             ret->left = power(s);
             break;
 
+        case TOK_FUNCTION2:
+            ret = new_expr(0, 0);
+            ret->f2 = s->f2;
+            next_token(s);
+
+            if (s->type != TOK_OPEN) {
+                s->type = TOK_ERROR;
+            } else {
+                next_token(s);
+                ret->left = expr(s);
+
+                if (s->type != TOK_SEP) {
+                    s->type = TOK_ERROR;
+                } else {
+                    next_token(s);
+                    ret->right = expr(s);
+                    if (s->type != TOK_CLOSE) {
+                        s->type = TOK_ERROR;
+                    } else {
+                        next_token(s);
+                    }
+                }
+            }
+
+            break;
+
         case TOK_OPEN:
             next_token(s);
-            ret = expr(s);
+            ret = list(s);
             if (s->type != TOK_CLOSE) {
                 s->type = TOK_ERROR;
             } else {
@@ -243,7 +288,7 @@ static te_expr *base(state *s) {
 static te_expr *power(state *s) {
     /* <power>     =    {("-" | "+")} <base> */
     int sign = 1;
-    while (s->type == TOK_FUNCTION2 && (s->f2 == add || s->f2 == sub)) {
+    while (s->type == TOK_INFIX && (s->f2 == add || s->f2 == sub)) {
         if (s->f2 == sub) sign = -sign;
         next_token(s);
     }
@@ -265,7 +310,7 @@ static te_expr *factor(state *s) {
     /* <factor>    =    <power> {"^" <power>} */
     te_expr *ret = power(s);
 
-    while (s->type == TOK_FUNCTION2 && (s->f2 == pow)) {
+    while (s->type == TOK_INFIX && (s->f2 == pow)) {
         te_fun2 t = s->f2;
         next_token(s);
         ret = new_expr(ret, power(s));
@@ -280,7 +325,7 @@ static te_expr *term(state *s) {
     /* <term>      =    <factor> {("*" | "/" | "%") <factor>} */
     te_expr *ret = factor(s);
 
-    while (s->type == TOK_FUNCTION2 && (s->f2 == mul || s->f2 == divide || s->f2 == fmod)) {
+    while (s->type == TOK_INFIX && (s->f2 == mul || s->f2 == divide || s->f2 == fmod)) {
         te_fun2 t = s->f2;
         next_token(s);
         ret = new_expr(ret, factor(s));
@@ -295,11 +340,25 @@ static te_expr *expr(state *s) {
     /* <expr>      =    <term> {("+" | "-") <term>} */
     te_expr *ret = term(s);
 
-    while (s->type == TOK_FUNCTION2 && (s->f2 == add || s->f2 == sub)) {
+    while (s->type == TOK_INFIX && (s->f2 == add || s->f2 == sub)) {
         te_fun2 t = s->f2;
         next_token(s);
         ret = new_expr(ret, term(s));
         ret->f2 = t;
+    }
+
+    return ret;
+}
+
+
+static te_expr *list(state *s) {
+    /* <list>      =    <expr> {"," <expr>} */
+    te_expr *ret = expr(s);
+
+    while (s->type == TOK_SEP) {
+        next_token(s);
+        ret = new_expr(ret, term(s));
+        ret->f2 = comma;
     }
 
     return ret;
@@ -356,7 +415,7 @@ te_expr *te_compile(const char *expression, const te_variable *variables, int va
     s.lookup_len = var_count;
 
     next_token(&s);
-    te_expr *root = expr(&s);
+    te_expr *root = list(&s);
 
     if (s.type != TOK_END) {
         te_free(root);

@@ -214,11 +214,12 @@ Here is some example performance numbers taken from the included
 
 TinyExpr parses the following grammar:
 
+    <list>      =    <expr> {"," <expr>}
     <expr>      =    <term> {("+" | "-") <term>}
     <term>      =    <factor> {("*" | "/" | "%") <factor>}
     <factor>    =    <power> {"^" <power>}
     <power>     =    {("-" | "+")} <base>
-    <base>      =    <constant> | <variable> | <function> <power> | "(" <expr> ")"
+    <base>      =    <constant> | <variable> | <function-1> <power> | <function-2> "(" <expr> "," <expr> ")" | "(" <list> ")"
 
 In addition, whitespace between tokens is ignored.
 
@@ -236,7 +237,11 @@ left-to-right).
 
 In addition, the following C math functions are also supported:
 
-- abs (calls to *fabs*), acos, asin, atan, ceil, cos, cosh, exp, floor, ln (calls to *log*), log (calls to *log10*), sin, sinh, sqrt, tan, tanh
+- abs (calls to *fabs*), acos, asin, atan, atan2, ceil, cos, cosh, exp, floor, ln (calls to *log*), log (calls to *log10*), pow, sin, sinh, sqrt, tan, tanh
+
+Also, the following constants are available:
+
+- `pi`, `e`
 
 
 ##Hints

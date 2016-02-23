@@ -37,6 +37,10 @@ test_case cases[] = {
     {"1", 1},
     {"(1)", 1},
 
+    {"pi", 3.14159},
+    {"atan(1)*4 - pi", 0},
+    {"e", 2.71828},
+
     {"2+1", 2+1},
     {"(((2+(1))))", 2+1},
     {"3+2", 3+2},
@@ -78,13 +82,13 @@ test_case cases[] = {
     {"asin sin (-0.5)", -0.5},
     {"(asin sin (-0.5))", -0.5},
 
-    {"log1000", 3},
-    {"log1e3", 3},
+    {"log 1000", 3},
+    {"log 1e3", 3},
     {"log 1000", 3},
     {"log 1e3", 3},
     {"log(1000)", 3},
     {"log(1e3)", 3},
-    {"log1.0e3", 3},
+    {"log 1.0e3", 3},
     {"10^5*5e-5", 5},
 
     {"100^.5+1", 11},
@@ -102,6 +106,23 @@ test_case cases[] = {
     {"sqrt 100 + 7", 17},
     {"sqrt 100 * 7", 70},
     {"sqrt (100 * 100)", 100},
+
+    {"1,2", 2},
+    {"1,2,3", 3},
+    {"(1,2),3", 3},
+    {"1,(2,3)", 3},
+
+    {"2^2", 4},
+    {"pow(2,2)", 4},
+
+    {"atan2(1,1)", 0.7854},
+    {"atan2(1,2)", 0.4636},
+    {"atan2(2,1)", 1.1071},
+    {"atan2(3,4)", 0.6435},
+    {"atan2(3+3,4*2)", 0.6435},
+    {"atan2(3+3,(4*2))", 0.6435},
+    {"atan2((3+3),4*2)", 0.6435},
+    {"atan2((3+3),(4*2))", 0.6435},
 
 };
 
@@ -141,6 +162,10 @@ void test_results() {
         const double ev = te_interp(expr, &err);
         lok(!err);
         lfequal(ev, answer);
+
+        if (err) {
+            printf("FAILED: %s (%d)\n", expr, err);
+        }
     }
 }
 
@@ -159,6 +184,10 @@ void test_syntax() {
         te_expr *n = te_compile(expr, 0, 0, &err);
         lequal(err, e);
         lok(!n);
+
+        if (err != e) {
+            printf("FAILED: %s\n", expr);
+        }
 
         const double k = te_interp(expr, 0);
         lok(k != k);
