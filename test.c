@@ -188,18 +188,25 @@ void test_nans() {
 
 void test_variables() {
 
-    double x, y;
-    te_variable lookup[] = {{"x", &x}, {"y", &y}};
+    double x, y, test;
+    te_variable lookup[] = {{"x", &x}, {"y", &y}, {"test", &test}};
 
     int err;
 
     te_expr *expr1 = te_compile("cos x + sin y", lookup, 2, &err);
+    lok(expr1);
     lok(!err);
 
     te_expr *expr2 = te_compile("x+x+x-y", lookup, 2, &err);
+    lok(expr2);
     lok(!err);
 
     te_expr *expr3 = te_compile("x*y^3", lookup, 2, &err);
+    lok(expr3);
+    lok(!err);
+
+    te_expr *expr4 = te_compile("test", lookup, 3, &err);
+    lok(expr4);
     lok(!err);
 
     for (y = 2; y < 3; ++y) {
@@ -212,12 +219,35 @@ void test_variables() {
 
             ev = te_eval(expr3);
             lfequal(ev, x*y*y*y);
+
+            test = x;
+            ev = te_eval(expr4);
+            lfequal(ev, x);
         }
     }
 
     te_free(expr1);
     te_free(expr2);
     te_free(expr3);
+    te_free(expr4);
+
+
+
+    te_expr *expr5 = te_compile("xx*y^3", lookup, 2, &err);
+    lok(!expr5);
+    lok(err);
+
+    te_expr *expr6 = te_compile("tes", lookup, 3, &err);
+    lok(!expr6);
+    lok(err);
+
+    te_expr *expr7 = te_compile("sinn x", lookup, 2, &err);
+    lok(!expr7);
+    lok(err);
+
+    te_expr *expr8 = te_compile("si x", lookup, 2, &err);
+    lok(!expr8);
+    lok(err);
 }
 
 
