@@ -99,7 +99,7 @@ static const builtin *find_function(const char *name, int len) {
     while (imax >= imin) {
         const int i = (imin + ((imax-imin)/2));
         int c = strncmp(name, functions[i].name, len);
-		if (!c) c = '\0' - functions[i].name[len];
+        if (!c) c = '\0' - functions[i].name[len];
         if (c == 0) {
             return functions + i;
         } else if (c > 0) {
@@ -117,7 +117,7 @@ static const double *find_var(const state *s, const char *name, int len) {
     int i;
     if (!s->lookup) return 0;
     for (i = 0; i < s->lookup_len; ++i) {
-        if (s->lookup[i].name[len] == '\0' && strncmp(name, s->lookup[i].name, len) == 0) {
+        if (strncmp(name, s->lookup[i].name, len) == 0 && s->lookup[i].name[len] == '\0') {
             return s->lookup[i].value;
         }
     }
