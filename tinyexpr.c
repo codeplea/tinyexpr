@@ -361,7 +361,7 @@ static te_expr *list(state *s) {
 
     while (s->type == TOK_SEP) {
         next_token(s);
-        ret = new_expr(TE_FUNCTION2, ret, term(s));
+        ret = new_expr(TE_FUNCTION2, ret, expr(s));
         ret->f2 = comma;
     }
 
