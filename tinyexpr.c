@@ -29,8 +29,11 @@
 #include <stdio.h>
 
 
-enum {TOK_NULL, TOK_END, TOK_OPEN, TOK_CLOSE, TOK_NUMBER, TOK_INFIX, TOK_FUNCTION0, TOK_FUNCTION1, TOK_FUNCTION2, TOK_VARIABLE, TOK_SEP, TOK_ERROR};
-enum {TE_CONSTANT = -2};
+enum {TOK_NULL, TOK_END, TOK_OPEN, TOK_CLOSE, TOK_NUMBER, TOK_INFIX,
+    TOK_VARIABLE, TOK_SEP, TOK_ERROR, TOK_FUNCTION0, TOK_FUNCTION1,
+    TOK_FUNCTION2, TOK_FUNCTION3, TOK_FUNCTION4, TOK_FUNCTION5, TOK_FUNCTION6,
+    TOK_FUNCTION7
+};
 
 
 
@@ -38,29 +41,44 @@ typedef struct state {
     const char *start;
     const char *next;
     int type;
-    union {double value; te_fun0 f0; te_fun1 f1; te_fun2 f2; const double *bound;};
+    union {double value; te_fun fun; const double *bound;};
 
     const te_variable *lookup;
     int lookup_len;
 } state;
 
 
+static int te_get_type(const int type) {
+    if(type == 0) return TE_VAR;
+    return type & TE_FLAG_TYPE;
+}
 
 
-static te_expr *new_expr(int type, te_expr *l, te_expr *r) {
-    te_expr *ret = malloc(sizeof(te_expr));
+static int te_get_arity(const int type) {
+    return type & TE_MASK_ARIT;
+}
+
+
+static te_expr *new_expr(const int type, const te_expr *members[]) {
+    int member_count = te_get_arity(type);
+    size_t member_size = sizeof(te_expr*) * member_count;
+    te_expr *ret = malloc(sizeof(te_expr) + member_size);
+    ret->member_count = member_count;
+    if(!members) {
+        memset(ret->members, 0, member_size);
+    } else {
+        memcpy(ret->members, members, member_size);
+    }
     ret->type = type;
-    ret->left = l;
-    ret->right = r;
     ret->bound = 0;
     return ret;
 }
 
 
 void te_free(te_expr *n) {
+    int i;
     if (!n) return;
-    if (n->left) te_free(n->left);
-    if (n->right) te_free(n->right);
+    for(i = n->member_count - 1; i >= 0; i--) te_free(n->members[i]);
     free(n);
 }
 
@@ -70,29 +88,28 @@ static const double e  = 2.71828182845904523536;
 
 static const te_variable functions[] = {
     /* must be in alphabetical order */
-    {"abs", fabs, TE_FUNCTION1},
-    {"acos", acos, TE_FUNCTION1},
-    {"asin", asin, TE_FUNCTION1},
-    {"atan", atan, TE_FUNCTION1},
-    {"atan2", atan2, TE_FUNCTION2},
-    {"ceil", ceil, TE_FUNCTION1},
-    {"cos", cos, TE_FUNCTION1},
-    {"cosh", cosh, TE_FUNCTION1},
-    {"e", &e, TE_VARIABLE},
-    {"exp", exp, TE_FUNCTION1},
-    {"floor", floor, TE_FUNCTION1},
-    {"ln", log, TE_FUNCTION1},
-    {"log", log10, TE_FUNCTION1},
-    {"pi", &pi, TE_VARIABLE},
-    {"pow", pow, TE_FUNCTION2},
-    {"sin", sin, TE_FUNCTION1},
-    {"sinh", sinh, TE_FUNCTION1},
-    {"sqrt", sqrt, TE_FUNCTION1},
-    {"tan", tan, TE_FUNCTION1},
-    {"tanh", tanh, TE_FUNCTION1},
+    {"abs", fabs,     TE_FUN | 1},
+    {"acos", acos,    TE_FUN | 1},
+    {"asin", asin,    TE_FUN | 1},
+    {"atan", atan,    TE_FUN | 1},
+    {"atan2", atan2,  TE_FUN | 2},
+    {"ceil", ceil,    TE_FUN | 1},
+    {"cos", cos,      TE_FUN | 1},
+    {"cosh", cosh,    TE_FUN | 1},
+    {"e", &e,         TE_VAR},
+    {"exp", exp,      TE_FUN | 1},
+    {"floor", floor,  TE_FUN | 1},
+    {"ln", log,       TE_FUN | 1},
+    {"log", log10,    TE_FUN | 1},
+    {"pi", &pi,       TE_VAR},
+    {"pow", pow,      TE_FUN | 2},
+    {"sin", sin,      TE_FUN | 1},
+    {"sinh", sinh,    TE_FUN | 1},
+    {"sqrt", sqrt,    TE_FUN | 1},
+    {"tan", tan,      TE_FUN | 1},
+    {"tanh", tanh,    TE_FUN | 1},
     {0}
 };
-
 
 static const te_variable *find_builtin(const char *name, int len) {
     int imin = 0;
@@ -154,6 +171,7 @@ void next_token(state *s) {
         } else {
             /* Look for a variable or builtin function call. */
             if (s->next[0] >= 'a' && s->next[0] <= 'z') {
+                int arity, type;
                 const char *start;
                 start = s->next;
                 while ((s->next[0] >= 'a' && s->next[0] <= 'z') || (s->next[0] >= '0' && s->next[0] <= '9')) s->next++;
@@ -164,30 +182,28 @@ void next_token(state *s) {
                 if (!var) {
                     s->type = TOK_ERROR;
                 } else {
-                    if (var->type == TE_VARIABLE) {
-                        s->type = TOK_VARIABLE;
-                        s->bound = var->value;
-                    } else if (var->type == TE_FUNCTION0) {
-                        s->type = TOK_FUNCTION0;
-                        s->f0 = var->value;
-                    } else if (var->type == TE_FUNCTION1) {
-                        s->type = TOK_FUNCTION1;
-                        s->f1 = var->value;
-                    } else if (var->type == TE_FUNCTION2) {
-                        s->type = TOK_FUNCTION2;
-                        s->f2 = var->value;
+                    type = te_get_type(var->type);
+                    arity = te_get_arity(var->type);
+                    switch(type)
+                    {
+                        case TE_VAR:
+                            s->type = TOK_VARIABLE;
+                            s->bound = var->value; break;
+                        case TE_FUN:
+                            s->type = TOK_FUNCTION0 + arity;
+                            s->fun.f0 = (void*)var->value;
                     }
                 }
 
             } else {
                 /* Look for an operator or special character. */
                 switch (s->next++[0]) {
-                    case '+': s->type = TOK_INFIX; s->f2 = add; break;
-                    case '-': s->type = TOK_INFIX; s->f2 = sub; break;
-                    case '*': s->type = TOK_INFIX; s->f2 = mul; break;
-                    case '/': s->type = TOK_INFIX; s->f2 = divide; break;
-                    case '^': s->type = TOK_INFIX; s->f2 = pow; break;
-                    case '%': s->type = TOK_INFIX; s->f2 = fmod; break;
+                    case '+': s->type = TOK_INFIX; s->fun.f2 = add; break;
+                    case '-': s->type = TOK_INFIX; s->fun.f2 = sub; break;
+                    case '*': s->type = TOK_INFIX; s->fun.f2 = mul; break;
+                    case '/': s->type = TOK_INFIX; s->fun.f2 = divide; break;
+                    case '^': s->type = TOK_INFIX; s->fun.f2 = pow; break;
+                    case '%': s->type = TOK_INFIX; s->fun.f2 = fmod; break;
                     case '(': s->type = TOK_OPEN; break;
                     case ')': s->type = TOK_CLOSE; break;
                     case ',': s->type = TOK_SEP; break;
@@ -207,23 +223,24 @@ static te_expr *power(state *s);
 static te_expr *base(state *s) {
     /* <base>      =    <constant> | <variable> | <function-0> {"(" ")"} | <function-1> <power> | <function-2> "(" <expr> "," <expr> ")" | "(" <list> ")" */
     te_expr *ret;
+    int arity;
 
     switch (s->type) {
         case TOK_NUMBER:
-            ret = new_expr(TE_CONSTANT, 0, 0);
+            ret = new_expr(TE_CONST, 0);
             ret->value = s->value;
             next_token(s);
             break;
 
         case TOK_VARIABLE:
-            ret = new_expr(TE_VARIABLE, 0, 0);
+            ret = new_expr(TE_VAR, 0);
             ret->bound = s->bound;
             next_token(s);
             break;
 
         case TOK_FUNCTION0:
-            ret = new_expr(TE_FUNCTION0, 0, 0);
-            ret->f0 = s->f0;
+            ret = new_expr(TE_FUN, 0);
+            ret->fun.f0 = s->fun.f0;
             next_token(s);
             if (s->type == TOK_OPEN) {
                 next_token(s);
@@ -236,33 +253,36 @@ static te_expr *base(state *s) {
             break;
 
         case TOK_FUNCTION1:
-            ret = new_expr(TE_FUNCTION1, 0, 0);
-            ret->f1 = s->f1;
+            ret = new_expr(TE_FUN | 1, 0);
+            ret->fun.f0 = s->fun.f0;
+
             next_token(s);
-            ret->left = power(s);
+            ret->members[0] = power(s);
             break;
 
-        case TOK_FUNCTION2:
-            ret = new_expr(TE_FUNCTION2, 0, 0);
-            ret->f2 = s->f2;
+        case TOK_FUNCTION2: case TOK_FUNCTION3: case TOK_FUNCTION4:
+        case TOK_FUNCTION5: case TOK_FUNCTION6: case TOK_FUNCTION7:
+            arity = s->type - TOK_FUNCTION0;
+
+            ret = new_expr(TE_FUN | arity, 0);
+            ret->fun.f0 = s->fun.f0;
             next_token(s);
 
             if (s->type != TOK_OPEN) {
                 s->type = TOK_ERROR;
             } else {
-                next_token(s);
-                ret->left = expr(s);
-
-                if (s->type != TOK_SEP) {
+                int i;
+                for(i = 0; i < arity; i++) {
+                    next_token(s);
+                    ret->members[i] = expr(s);
+                    if(s->type != TOK_SEP) {
+                        break;
+                    }
+                }
+                if(s->type != TOK_CLOSE || i < arity - 1) {
                     s->type = TOK_ERROR;
                 } else {
                     next_token(s);
-                    ret->right = expr(s);
-                    if (s->type != TOK_CLOSE) {
-                        s->type = TOK_ERROR;
-                    } else {
-                        next_token(s);
-                    }
                 }
             }
 
@@ -279,7 +299,7 @@ static te_expr *base(state *s) {
             break;
 
         default:
-            ret = new_expr(0, 0, 0);
+            ret = new_expr(0, 0);
             s->type = TOK_ERROR;
             ret->value = 0.0/0.0;
             break;
@@ -292,8 +312,8 @@ static te_expr *base(state *s) {
 static te_expr *power(state *s) {
     /* <power>     =    {("-" | "+")} <base> */
     int sign = 1;
-    while (s->type == TOK_INFIX && (s->f2 == add || s->f2 == sub)) {
-        if (s->f2 == sub) sign = -sign;
+    while (s->type == TOK_INFIX && (s->fun.f2 == add || s->fun.f2 == sub)) {
+        if (s->fun.f2 == sub) sign = -sign;
         next_token(s);
     }
 
@@ -302,8 +322,8 @@ static te_expr *power(state *s) {
     if (sign == 1) {
         ret = base(s);
     } else {
-        ret = new_expr(TE_FUNCTION1, base(s), 0);
-        ret->f1 = negate;
+        ret = new_expr(TE_FUN | 1, (const te_expr*[]){base(s)});
+        ret->fun.f1 = negate;
     }
 
     return ret;
@@ -314,11 +334,11 @@ static te_expr *factor(state *s) {
     /* <factor>    =    <power> {"^" <power>} */
     te_expr *ret = power(s);
 
-    while (s->type == TOK_INFIX && (s->f2 == pow)) {
-        te_fun2 t = s->f2;
+    while (s->type == TOK_INFIX && (s->fun.f2 == pow)) {
+        te_fun2 t = s->fun.f2;
         next_token(s);
-        ret = new_expr(TE_FUNCTION2, ret, power(s));
-        ret->f2 = t;
+        ret = new_expr(TE_FUN | 2, (const te_expr*[]){ret, power(s)});
+        ret->fun.f2 = t;
     }
 
     return ret;
@@ -329,11 +349,11 @@ static te_expr *term(state *s) {
     /* <term>      =    <factor> {("*" | "/" | "%") <factor>} */
     te_expr *ret = factor(s);
 
-    while (s->type == TOK_INFIX && (s->f2 == mul || s->f2 == divide || s->f2 == fmod)) {
-        te_fun2 t = s->f2;
+    while (s->type == TOK_INFIX && (s->fun.f2 == mul || s->fun.f2 == divide || s->fun.f2 == fmod)) {
+        te_fun2 t = s->fun.f2;
         next_token(s);
-        ret = new_expr(TE_FUNCTION2, ret, factor(s));
-        ret->f2 = t;
+        ret = new_expr(TE_FUN | 2, (const te_expr*[]){ret, factor(s)});
+        ret->fun.f2 = t;
     }
 
     return ret;
@@ -344,11 +364,11 @@ static te_expr *expr(state *s) {
     /* <expr>      =    <term> {("+" | "-") <term>} */
     te_expr *ret = term(s);
 
-    while (s->type == TOK_INFIX && (s->f2 == add || s->f2 == sub)) {
-        te_fun2 t = s->f2;
+    while (s->type == TOK_INFIX && (s->fun.f2 == add || s->fun.f2 == sub)) {
+        te_fun2 t = s->fun.f2;
         next_token(s);
-        ret = new_expr(TE_FUNCTION2, ret, term(s));
-        ret->f2 = t;
+        ret = new_expr(TE_FUN | 2, (const te_expr*[]){ret, term(s)});
+        ret->fun.f2 = t;
     }
 
     return ret;
@@ -361,8 +381,8 @@ static te_expr *list(state *s) {
 
     while (s->type == TOK_SEP) {
         next_token(s);
-        ret = new_expr(TE_FUNCTION2, ret, expr(s));
-        ret->f2 = comma;
+        ret = new_expr(TE_FUN | 2, (const te_expr*[]){ret, expr(s)});
+        ret->fun.f2 = comma;
     }
 
     return ret;
@@ -370,12 +390,23 @@ static te_expr *list(state *s) {
 
 
 double te_eval(const te_expr *n) {
-    switch (n->type) {
-        case TE_CONSTANT: return n->value;
-        case TE_VARIABLE: return *n->bound;
-        case TE_FUNCTION0: return n->f0();
-        case TE_FUNCTION1: return n->f1(te_eval(n->left));
-        case TE_FUNCTION2: return n->f2(te_eval(n->left), te_eval(n->right));
+    switch(te_get_type(n->type)) {
+        case TE_CONST: return n->value;
+        case TE_VAR: return *n->bound;
+        case TE_FUN:
+        switch(te_get_arity(n->type)) {
+            #define m(e) te_eval(n->members[e])
+            case 0: return n->fun.f0();
+            case 1: return n->fun.f1(m(0));
+            case 2: return n->fun.f2(m(0), m(1));
+            case 3: return n->fun.f3(m(0), m(1), m(2));
+            case 4: return n->fun.f4(m(0), m(1), m(2), m(3));
+            case 5: return n->fun.f5(m(0), m(1), m(2), m(3), m(4));
+            case 6: return n->fun.f6(m(0), m(1), m(2), m(3), m(4), m(5));
+            case 7: return n->fun.f7(m(0), m(1), m(2), m(3), m(4), m(5), m(6));
+            default: return 0.0/0.0;
+            #undef m
+        }
         default: return 0.0/0.0;
     }
 }
@@ -447,21 +478,24 @@ double te_interp(const char *expression, int *error) {
     return ret;
 }
 
-
 static void pn (const te_expr *n, int depth) {
+    int i, arity;
     printf("%*s", depth, "");
 
-    if (n->bound) {
-        printf("bound %p\n", n->bound);
-    } else if (n->left == 0 && n->right == 0) {
-        printf("%f\n", n->value);
-    } else if (n->left && n->right == 0) {
-        printf("f1 %p\n", n->left);
-        pn(n->left, depth+1);
-    } else {
-        printf("f2 %p %p\n", n->left, n->right);
-        pn(n->left, depth+1);
-        pn(n->right, depth+1);
+    switch(te_get_type(n->type)) {
+    case TE_CONST: printf("%f\n", n->value); break;
+    case TE_VAR: printf("bound %p\n", n->bound); break;
+    case TE_FUN:
+         arity = te_get_arity(n->type);
+         printf("f%d", arity);
+         for(i = 0; i < arity; i++) {
+             printf(" %p", n->members[i]);
+         }
+         printf("\n");
+         for(i = 0; i < arity; i++) {
+             pn(n->members[i], depth + 1);
+         }
+         break;
     }
 }
 

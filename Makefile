@@ -1,5 +1,6 @@
 CC = gcc
 CCFLAGS = -ansi -Wall -Wshadow -O2
+
 LFLAGS = -lm
 
 
