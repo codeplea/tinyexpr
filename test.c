@@ -338,6 +338,10 @@ double test2(double a, double b) {
     return a + b;
 }
 
+double test3(double a, double b, double c) {
+    return (a + b) / c;
+}
+
 
 void test_dynamic() {
 
@@ -345,9 +349,10 @@ void test_dynamic() {
     te_variable lookup[] = {
         {"x", &x},
         {"f", &f},
-        {"test0", test0, TE_FUNCTION0},
-        {"test1", test1, TE_FUNCTION1},
-        {"test2", test2, TE_FUNCTION2},
+        {"test0", test0, TE_FUN | 0},
+        {"test1", test1, TE_FUN | 1},
+        {"test2", test2, TE_FUN | 2},
+        {"test3", test3, TE_FUN | 3},
     };
 
     test_case cases[] = {
@@ -362,6 +367,7 @@ void test_dynamic() {
         {"test1 f", 10},
         {"test1 x", 4},
         {"test2 (test0, x)", 8},
+        {"test3 (test0, x, 2)", 4},
     };
 
     x = 2;
