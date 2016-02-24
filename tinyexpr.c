@@ -63,6 +63,7 @@ static te_expr *new_expr(const int type, const te_expr *members[]) {
     int member_count = te_get_arity(type);
     size_t member_size = sizeof(te_expr*) * member_count;
     te_expr *ret = malloc(sizeof(te_expr) + member_size);
+    ret->member_count = member_count;
     if(!members) {
         memset(ret->members, 0, member_size);
     } else {
@@ -251,7 +252,7 @@ static te_expr *base(state *s) {
             }
             break;
 
-        case TOK_FUNCTION1:            
+        case TOK_FUNCTION1:
             ret = new_expr(TE_FUN | 1, 0);
             ret->fun.f0 = s->fun.f0;
 
