@@ -382,7 +382,7 @@ void test_dynamic() {
         const double answer = cases[i].answer;
 
         int err;
-        te_expr *ex = te_compile(expr, lookup, sizeof(lookup), &err);
+        te_expr *ex = te_compile(expr, lookup, sizeof(lookup)/sizeof(te_variable), &err);
         lok(ex);
         lfequal(te_eval(ex), answer);
         te_free(ex);
