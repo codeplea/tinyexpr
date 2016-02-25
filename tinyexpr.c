@@ -404,7 +404,7 @@ double te_eval_closure(const te_expr *n, void *context) {
     if (!n) return 0.0/0.0;
 
 #define TE_FUN(...) ((double(*)(__VA_ARGS__))n->function)
-#define M(e) te_eval(n->parameters[e])
+#define M(e) te_eval_closure(n->parameters[e], context)
 
     switch(n->type) {
         case TE_CONSTANT: return n->value;
