@@ -35,12 +35,7 @@ typedef struct {
 
 
 
-
-
-
-
 void test_results() {
-
     test_case cases[] = {
         {"1", 1},
         {"(1)", 1},
@@ -117,6 +112,7 @@ void test_results() {
 
         {"1,2", 2},
         {"1,2+1", 3},
+        {"1+1,2+2,2+1", 3},
         {"1,2,3", 3},
         {"(1,2),3", 3},
         {"1,(2,3)", 3},
@@ -155,8 +151,6 @@ void test_results() {
 
 
 void test_syntax() {
-
-
     test_case errors[] = {
         {"", 1},
         {"1+", 2},
@@ -293,7 +287,7 @@ void test_variables() {
 
 
 #define cross_check(a, b) do {\
-    expr = te_compile((a), &lookup, 1, &err);\
+    expr = te_compile((a), lookup, 2, &err);\
     lfequal(te_eval(expr), (b));\
     lok(!err);\
     te_free(expr);\
@@ -301,8 +295,8 @@ void test_variables() {
 
 void test_functions() {
 
-    double x;
-    te_variable lookup = {"x", &x};
+    double x, y;
+    te_variable lookup[] = {{"x", &x}, {"y", &y}};
 
     int err;
     te_expr *expr;
@@ -324,6 +318,12 @@ void test_functions() {
         cross_check("sqrt x", sqrt(x));
         cross_check("tan x", tan(x));
         cross_check("tanh x", tanh(x));
+
+        for (y = -2; y < 2; y += .2) {
+            if (fabs(x) < 0.01) break;
+            cross_check("atan2(x,y)", atan2(x, y));
+            cross_check("pow(x,y)", pow(x, y));
+        }
     }
 }
 
@@ -351,10 +351,10 @@ void test_dynamic() {
     te_variable lookup[] = {
         {"x", &x},
         {"f", &f},
-        {"test0", test0, TE_FUN | 0},
-        {"test1", test1, TE_FUN | 1},
-        {"test2", test2, TE_FUN | 2},
-        {"test3", test3, TE_FUN | 3},
+        {"test0", test0, TE_FUNCTION0},
+        {"test1", test1, TE_FUNCTION1},
+        {"test2", test2, TE_FUNCTION2},
+        {"test3", test3, TE_FUNCTION3},
     };
 
     test_case cases[] = {
@@ -366,7 +366,10 @@ void test_dynamic() {
         {"f+test0", 11},
         {"test0+test0", 12},
         {"test0()+test0", 12},
+        {"test0+test0()", 12},
+        {"test0()+(0)+test0()", 12},
         {"test1 test0", 12},
+        {"test1(test0)", 12},
         {"test1 f", 10},
         {"test1 x", 4},
         {"test2 (test0, x)", 8},

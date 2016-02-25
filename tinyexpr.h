@@ -47,20 +47,20 @@ typedef union
 
 typedef struct te_expr {
     int type;
-    union {double value; const double *bound; te_fun fun; };
-    int member_count;
+    union {double value; const double *bound; te_fun fun;};
     struct te_expr *members[];
 } te_expr;
 
 
-#define TE_MASK_ARIT 0x00000007 /* Three bits, Arity, max is 8 */
-#define TE_FLAG_TYPE 0x00000018 /* Two bits, 1 = constant, 2 = variable, 3 = function */
-
-enum { TE_CONST = 1 << 3, TE_VAR = 2 << 3, TE_FUN = 3 << 3};
+enum {
+    TE_VARIABLE = 0,
+    TE_FUNCTION0, TE_FUNCTION1, TE_FUNCTION2, TE_FUNCTION3,
+    TE_FUNCTION4, TE_FUNCTION5, TE_FUNCTION6, TE_FUNCTION7
+};
 
 typedef struct te_variable {
     const char *name;
-    const void *value;
+    const void *address;
     int type;
 } te_variable;
 
