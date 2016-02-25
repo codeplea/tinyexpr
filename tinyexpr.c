@@ -29,9 +29,6 @@
 #include <stdio.h>
 
 
-#define TE_MASK_ARIT 0x00000007 /* Three bits, Arity, max is 8 */
-#define TE_FLAG_TYPE 0x00000018 /* Two bits, 1 = constant, 2 = variable, 3 = function */
-
 enum {
     TOK_NULL, TOK_ERROR, TOK_END, TOK_SEP,
     TOK_OPEN, TOK_CLOSE, TOK_NUMBER, TOK_VARIABLE, TOK_INFIX,
