@@ -35,6 +35,7 @@ extern "C" {
 typedef struct te_expr {
     int type;
     union {double value; const double *bound; const void *function;};
+    void *context;
     struct te_expr *parameters[];
 } te_expr;
 
@@ -51,6 +52,7 @@ typedef struct te_variable {
     const char *name;
     const void *address;
     int type;
+    void *context;
 } te_variable;
 
 
@@ -65,9 +67,6 @@ te_expr *te_compile(const char *expression, const te_variable *variables, int va
 
 /* Evaluates the expression. */
 double te_eval(const te_expr *n);
-
-/* Evaluates the expression while passing a closure to any bound closure functions. */
-double te_eval_closure(const te_expr *n, void *context);
 
 /* Prints debugging information on the syntax tree. */
 void te_print(const te_expr *n);

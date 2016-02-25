@@ -44,6 +44,7 @@ typedef struct state {
     const char *next;
     int type;
     union {double value; const double *bound; const void *function;};
+    void *context;
 
     const te_variable *lookup;
     int lookup_len;
@@ -188,10 +189,12 @@ void next_token(state *s) {
                             s->bound = var->address;
                             break;
 
-                        case TE_FUNCTION0: case TE_FUNCTION1: case TE_FUNCTION2: case TE_FUNCTION3:
-                        case TE_FUNCTION4: case TE_FUNCTION5: case TE_FUNCTION6: case TE_FUNCTION7:
                         case TE_CLOSURE0: case TE_CLOSURE1: case TE_CLOSURE2: case TE_CLOSURE3:
                         case TE_CLOSURE4: case TE_CLOSURE5: case TE_CLOSURE6: case TE_CLOSURE7:
+                            s->context = var->context;
+
+                        case TE_FUNCTION0: case TE_FUNCTION1: case TE_FUNCTION2: case TE_FUNCTION3:
+                        case TE_FUNCTION4: case TE_FUNCTION5: case TE_FUNCTION6: case TE_FUNCTION7:
                             s->type = var->type;
                             s->function = var->address;
                             break;
@@ -245,6 +248,7 @@ static te_expr *base(state *s) {
         case TE_CLOSURE0:
             ret = new_expr(s->type, 0);
             ret->function = s->function;
+            ret->context = s->context;
             next_token(s);
             if (s->type == TOK_OPEN) {
                 next_token(s);
@@ -260,6 +264,7 @@ static te_expr *base(state *s) {
         case TE_CLOSURE1:
             ret = new_expr(s->type, 0);
             ret->function = s->function;
+            ret->context = s->context;
             next_token(s);
             ret->parameters[0] = power(s);
             break;
@@ -272,6 +277,7 @@ static te_expr *base(state *s) {
 
             ret = new_expr(s->type, 0);
             ret->function = s->function;
+            ret->context = s->context;
             next_token(s);
 
             if (s->type != TOK_OPEN) {
@@ -396,15 +402,10 @@ static te_expr *list(state *s) {
 
 
 double te_eval(const te_expr *n) {
-    return te_eval_closure(n, 0);
-}
-
-
-double te_eval_closure(const te_expr *n, void *context) {
     if (!n) return 0.0/0.0;
 
 #define TE_FUN(...) ((double(*)(__VA_ARGS__))n->function)
-#define M(e) te_eval_closure(n->parameters[e], context)
+#define M(e) te_eval(n->parameters[e])
 
     switch(n->type) {
         case TE_CONSTANT: return n->value;
@@ -427,14 +428,14 @@ double te_eval_closure(const te_expr *n, void *context) {
         case TE_CLOSURE0: case TE_CLOSURE1: case TE_CLOSURE2: case TE_CLOSURE3:
         case TE_CLOSURE4: case TE_CLOSURE5: case TE_CLOSURE6: case TE_CLOSURE7:
             switch(ARITY(n->type)) {
-                case 0: return TE_FUN(void*)(context);
-                case 1: return TE_FUN(void*, double)(context, M(0));
-                case 2: return TE_FUN(void*, double, double)(context, M(0), M(1));
-                case 3: return TE_FUN(void*, double, double, double)(context, M(0), M(1), M(2));
-                case 4: return TE_FUN(void*, double, double, double, double)(context, M(0), M(1), M(2), M(3));
-                case 5: return TE_FUN(void*, double, double, double, double, double)(context, M(0), M(1), M(2), M(3), M(4));
-                case 6: return TE_FUN(void*, double, double, double, double, double, double)(context, M(0), M(1), M(2), M(3), M(4), M(5));
-                case 7: return TE_FUN(void*, double, double, double, double, double, double, double)(context, M(0), M(1), M(2), M(3), M(4), M(5), M(6));
+                case 0: return TE_FUN(void*)(n->context);
+                case 1: return TE_FUN(void*, double)(n->context, M(0));
+                case 2: return TE_FUN(void*, double, double)(n->context, M(0), M(1));
+                case 3: return TE_FUN(void*, double, double, double)(n->context, M(0), M(1), M(2));
+                case 4: return TE_FUN(void*, double, double, double, double)(n->context, M(0), M(1), M(2), M(3));
+                case 5: return TE_FUN(void*, double, double, double, double, double)(n->context, M(0), M(1), M(2), M(3), M(4));
+                case 6: return TE_FUN(void*, double, double, double, double, double, double)(n->context, M(0), M(1), M(2), M(3), M(4), M(5));
+                case 7: return TE_FUN(void*, double, double, double, double, double, double, double)(n->context, M(0), M(1), M(2), M(3), M(4), M(5), M(6));
                 default: return 0.0/0.0;
             }
 

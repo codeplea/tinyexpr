@@ -432,11 +432,14 @@ double cell(void *context, double a) {
 
 void test_closure() {
 
+    double extra;
+    double c[] = {5,6,7,8,9};
+
     te_variable lookup[] = {
-        {"c0", clo0, TE_CLOSURE0},
-        {"c1", clo1, TE_CLOSURE1},
-        {"c2", clo2, TE_CLOSURE2},
-        {"cell", cell, TE_CLOSURE1},
+        {"c0", clo0, TE_CLOSURE0, &extra},
+        {"c1", clo1, TE_CLOSURE1, &extra},
+        {"c2", clo2, TE_CLOSURE2, &extra},
+        {"cell", cell, TE_CLOSURE1, c},
     };
 
     test_case cases[] = {
@@ -445,7 +448,6 @@ void test_closure() {
         {"c2 (10, 20)", 30},
     };
 
-    double extra = 10;
     int i;
     for (i = 0; i < sizeof(cases) / sizeof(test_case); ++i) {
         const char *expr = cases[i].expr;
@@ -454,13 +456,17 @@ void test_closure() {
         int err;
         te_expr *ex = te_compile(expr, lookup, sizeof(lookup)/sizeof(te_variable), &err);
         lok(ex);
-        lfequal(te_eval(ex), answer);
-        lfequal(te_eval_closure(ex, &extra), answer + extra);
+
+        extra = 0;
+        lfequal(te_eval(ex), answer + extra);
+
+        extra = 10;
+        lfequal(te_eval(ex), answer + extra);
+
         te_free(ex);
     }
 
 
-    double c[] = {5,6,7,8,9};
     test_case cases2[] = {
         {"cell 0", 5},
         {"cell 1", 6},
@@ -475,7 +481,7 @@ void test_closure() {
         int err;
         te_expr *ex = te_compile(expr, lookup, sizeof(lookup)/sizeof(te_variable), &err);
         lok(ex);
-        lfequal(te_eval_closure(ex, c), answer);
+        lfequal(te_eval(ex), answer);
         te_free(ex);
     }
 }
