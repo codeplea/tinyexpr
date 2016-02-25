@@ -412,6 +412,50 @@ void test_dynamic() {
 }
 
 
+double clo0(void *context) {
+    if (context) return *((double*)context) + 6;
+    return 6;
+}
+double clo1(void *context, double a) {
+    if (context) return *((double*)context) + a * 2;
+    return a * 2;
+}
+double clo2(void *context, double a, double b) {
+    if (context) return *((double*)context) + a + b;
+    return a + b;
+}
+
+
+void test_closure() {
+
+    te_variable lookup[] = {
+        {"c0", clo0, TE_CLOSURE0},
+        {"c1", clo1, TE_CLOSURE1},
+        {"c2", clo2, TE_CLOSURE2},
+    };
+
+    test_case cases[] = {
+        {"c0", 6},
+        {"c1 4", 8},
+        {"c2 (10, 20)", 30},
+    };
+
+    double extra = 10;
+    int i;
+    for (i = 0; i < sizeof(cases) / sizeof(test_case); ++i) {
+        const char *expr = cases[i].expr;
+        const double answer = cases[i].answer;
+
+        int err;
+        te_expr *ex = te_compile(expr, lookup, sizeof(lookup)/sizeof(te_variable), &err);
+        lok(ex);
+        lfequal(te_eval(ex), answer);
+        lfequal(te_eval_closure(ex, &extra), answer + extra);
+        te_free(ex);
+    }
+}
+
+
 int main(int argc, char *argv[])
 {
     lrun("Results", test_results);
@@ -420,6 +464,7 @@ int main(int argc, char *argv[])
     lrun("Variables", test_variables);
     lrun("Functions", test_functions);
     lrun("Dynamic", test_dynamic);
+    lrun("Closure", test_closure);
     lresults();
 
     return lfails != 0;

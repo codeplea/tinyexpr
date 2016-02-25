@@ -41,8 +41,10 @@ typedef struct te_expr {
 
 enum {
     TE_VARIABLE = 0,
-    TE_FUNCTION0, TE_FUNCTION1, TE_FUNCTION2, TE_FUNCTION3,
-    TE_FUNCTION4, TE_FUNCTION5, TE_FUNCTION6, TE_FUNCTION7
+    TE_FUNCTION0 = 2, TE_FUNCTION1, TE_FUNCTION2, TE_FUNCTION3,
+    TE_FUNCTION4, TE_FUNCTION5, TE_FUNCTION6, TE_FUNCTION7,
+    TE_CLOSURE0, TE_CLOSURE1, TE_CLOSURE2, TE_CLOSURE3,
+    TE_CLOSURE4, TE_CLOSURE5, TE_CLOSURE6, TE_CLOSURE7
 };
 
 typedef struct te_variable {
@@ -63,6 +65,9 @@ te_expr *te_compile(const char *expression, const te_variable *variables, int va
 
 /* Evaluates the expression. */
 double te_eval(const te_expr *n);
+
+/* Evaluates the expression while passing a closure to any bound closure functions. */
+double te_eval_closure(const te_expr *n, void *context);
 
 /* Prints debugging information on the syntax tree. */
 void te_print(const te_expr *n);
