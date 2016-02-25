@@ -35,8 +35,7 @@ extern "C" {
 typedef struct te_expr {
     int type;
     union {double value; const double *bound; const void *function;};
-    void *context;
-    struct te_expr *parameters[];
+    void *parameters[];
 } te_expr;
 
 

@@ -52,15 +52,18 @@ typedef struct state {
 
 
 
-#define ARITY_CLO(TYPE) ( ((TYPE) >= TE_CLOSURE0 && (TYPE) <= TE_CLOSURE7) ? ((TYPE)-TE_CLOSURE0) : 0 )
-#define ARITY(TYPE) ( ((TYPE) >= TE_FUNCTION0 && (TYPE) <= TE_FUNCTION7) ? ((TYPE)-TE_FUNCTION0) : ARITY_CLO(TYPE) )
+#define IS_FUNCTION(TYPE) ((TYPE) >= TE_FUNCTION0 && (TYPE) <= TE_FUNCTION7)
+#define IS_CLOSURE(TYPE) ((TYPE) >= TE_CLOSURE0 && (TYPE) <= TE_CLOSURE7)
+#define ARITY_CLO(TYPE) ( IS_CLOSURE(TYPE) ? ((TYPE)-TE_CLOSURE0) : 0 )
+#define ARITY(TYPE) ( IS_FUNCTION(TYPE) ? ((TYPE)-TE_FUNCTION0) : ARITY_CLO(TYPE) )
 
 #define NEW_EXPR(type, ...) new_expr((type), (const te_expr*[]){__VA_ARGS__})
 
 static te_expr *new_expr(const int type, const te_expr *parameters[]) {
     const int arity = ARITY(type);
-    const int psize = sizeof(te_expr*) * arity;
-    te_expr *ret = malloc(sizeof(te_expr) + psize);
+    const int psize = sizeof(void*) * arity;
+    const int size = sizeof(te_expr) + psize + (IS_CLOSURE(type) ? sizeof(void*) : 0);
+    te_expr *ret = malloc(size);
     if (arity && parameters) {
         memcpy(ret->parameters, parameters, psize);
     }
@@ -248,7 +251,7 @@ static te_expr *base(state *s) {
         case TE_CLOSURE0:
             ret = new_expr(s->type, 0);
             ret->function = s->function;
-            ret->context = s->context;
+            if (IS_CLOSURE(s->type)) ret->parameters[0] = s->context;
             next_token(s);
             if (s->type == TOK_OPEN) {
                 next_token(s);
@@ -264,7 +267,7 @@ static te_expr *base(state *s) {
         case TE_CLOSURE1:
             ret = new_expr(s->type, 0);
             ret->function = s->function;
-            ret->context = s->context;
+            if (IS_CLOSURE(s->type)) ret->parameters[1] = s->context;
             next_token(s);
             ret->parameters[0] = power(s);
             break;
@@ -277,7 +280,7 @@ static te_expr *base(state *s) {
 
             ret = new_expr(s->type, 0);
             ret->function = s->function;
-            ret->context = s->context;
+            if (IS_CLOSURE(s->type)) ret->parameters[arity] = s->context;
             next_token(s);
 
             if (s->type != TOK_OPEN) {
@@ -428,14 +431,14 @@ double te_eval(const te_expr *n) {
         case TE_CLOSURE0: case TE_CLOSURE1: case TE_CLOSURE2: case TE_CLOSURE3:
         case TE_CLOSURE4: case TE_CLOSURE5: case TE_CLOSURE6: case TE_CLOSURE7:
             switch(ARITY(n->type)) {
-                case 0: return TE_FUN(void*)(n->context);
-                case 1: return TE_FUN(void*, double)(n->context, M(0));
-                case 2: return TE_FUN(void*, double, double)(n->context, M(0), M(1));
-                case 3: return TE_FUN(void*, double, double, double)(n->context, M(0), M(1), M(2));
-                case 4: return TE_FUN(void*, double, double, double, double)(n->context, M(0), M(1), M(2), M(3));
-                case 5: return TE_FUN(void*, double, double, double, double, double)(n->context, M(0), M(1), M(2), M(3), M(4));
-                case 6: return TE_FUN(void*, double, double, double, double, double, double)(n->context, M(0), M(1), M(2), M(3), M(4), M(5));
-                case 7: return TE_FUN(void*, double, double, double, double, double, double, double)(n->context, M(0), M(1), M(2), M(3), M(4), M(5), M(6));
+                case 0: return TE_FUN(void*)(n->parameters[0]);
+                case 1: return TE_FUN(void*, double)(n->parameters[1], M(0));
+                case 2: return TE_FUN(void*, double, double)(n->parameters[2], M(0), M(1));
+                case 3: return TE_FUN(void*, double, double, double)(n->parameters[3], M(0), M(1), M(2));
+                case 4: return TE_FUN(void*, double, double, double, double)(n->parameters[4], M(0), M(1), M(2), M(3));
+                case 5: return TE_FUN(void*, double, double, double, double, double)(n->parameters[5], M(0), M(1), M(2), M(3), M(4));
+                case 6: return TE_FUN(void*, double, double, double, double, double, double)(n->parameters[6], M(0), M(1), M(2), M(3), M(4), M(5));
+                case 7: return TE_FUN(void*, double, double, double, double, double, double, double)(n->parameters[7], M(0), M(1), M(2), M(3), M(4), M(5), M(6));
                 default: return 0.0/0.0;
             }
 
