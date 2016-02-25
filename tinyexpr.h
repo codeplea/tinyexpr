@@ -31,24 +31,11 @@ extern "C" {
 #endif
 
 
-typedef double (*te_fun0)(void);
-typedef double (*te_fun1)(double);
-typedef double (*te_fun2)(double, double);
-typedef double (*te_fun3)(double, double, double);
-typedef double (*te_fun4)(double, double, double, double);
-typedef double (*te_fun5)(double, double, double, double, double);
-typedef double (*te_fun6)(double, double, double, double, double, double);
-typedef double (*te_fun7)(double, double, double, double, double, double, double);
-
-typedef union
-{
-    te_fun0 f0; te_fun1 f1; te_fun2 f2; te_fun3 f3; te_fun4 f4; te_fun5 f5; te_fun6 f6; te_fun7 f7;
-} te_fun;
 
 typedef struct te_expr {
     int type;
-    union {double value; const double *bound; te_fun fun;};
-    struct te_expr *members[];
+    union {double value; const double *bound; const void *function;};
+    struct te_expr *parameters[];
 } te_expr;
 
 

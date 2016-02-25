@@ -33,8 +33,9 @@
 
 
 
+typedef double (*function1)(double);
 
-void bench(const char *expr, te_fun1 func) {
+void bench(const char *expr, function1 func) {
     int i, j;
     volatile double d;
     double tmp;
