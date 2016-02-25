@@ -328,20 +328,29 @@ void test_functions() {
 }
 
 
-double test0() {
+double sum0() {
     return 6;
 }
-
-double test1(double a) {
+double sum1(double a) {
     return a * 2;
 }
-
-double test2(double a, double b) {
+double sum2(double a, double b) {
     return a + b;
 }
-
-double test3(double a, double b, double c) {
-    return (a + b) / c;
+double sum3(double a, double b, double c) {
+    return a + b + c;
+}
+double sum4(double a, double b, double c, double d) {
+    return a + b + c + d;
+}
+double sum5(double a, double b, double c, double d, double e) {
+    return a + b + c + d + e;
+}
+double sum6(double a, double b, double c, double d, double e, double f) {
+    return a + b + c + d + e + f;
+}
+double sum7(double a, double b, double c, double d, double e, double f, double g) {
+    return a + b + c + d + e + f + g;
 }
 
 
@@ -351,10 +360,14 @@ void test_dynamic() {
     te_variable lookup[] = {
         {"x", &x},
         {"f", &f},
-        {"test0", test0, TE_FUNCTION0},
-        {"test1", test1, TE_FUNCTION1},
-        {"test2", test2, TE_FUNCTION2},
-        {"test3", test3, TE_FUNCTION3},
+        {"sum0", sum0, TE_FUNCTION0},
+        {"sum1", sum1, TE_FUNCTION1},
+        {"sum2", sum2, TE_FUNCTION2},
+        {"sum3", sum3, TE_FUNCTION3},
+        {"sum4", sum4, TE_FUNCTION4},
+        {"sum5", sum5, TE_FUNCTION5},
+        {"sum6", sum6, TE_FUNCTION6},
+        {"sum7", sum7, TE_FUNCTION7},
     };
 
     test_case cases[] = {
@@ -363,17 +376,23 @@ void test_dynamic() {
         {"x+x", 4},
         {"x+f", 7},
         {"f+f", 10},
-        {"f+test0", 11},
-        {"test0+test0", 12},
-        {"test0()+test0", 12},
-        {"test0+test0()", 12},
-        {"test0()+(0)+test0()", 12},
-        {"test1 test0", 12},
-        {"test1(test0)", 12},
-        {"test1 f", 10},
-        {"test1 x", 4},
-        {"test2 (test0, x)", 8},
-        {"test3 (test0, x, 2)", 4},
+        {"f+sum0", 11},
+        {"sum0+sum0", 12},
+        {"sum0()+sum0", 12},
+        {"sum0+sum0()", 12},
+        {"sum0()+(0)+sum0()", 12},
+        {"sum1 sum0", 12},
+        {"sum1(sum0)", 12},
+        {"sum1 f", 10},
+        {"sum1 x", 4},
+        {"sum2 (sum0, x)", 8},
+        {"sum3 (sum0, x, 2)", 10},
+        {"sum2(2,3)", 5},
+        {"sum3(2,3,4)", 9},
+        {"sum4(2,3,4,5)", 14},
+        {"sum5(2,3,4,5,6)", 20},
+        {"sum6(2,3,4,5,6,7)", 27},
+        {"sum7(2,3,4,5,6,7,8)", 35},
     };
 
     x = 2;
