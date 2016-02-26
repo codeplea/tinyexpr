@@ -239,13 +239,15 @@ void test_variables() {
     lok(expr3);
     lok(!err);
 
-    te_expr *expr4 = te_compile("test", lookup, 3, &err);
+    te_expr *expr4 = te_compile("test+5", lookup, 3, &err);
     lok(expr4);
     lok(!err);
 
     for (y = 2; y < 3; ++y) {
         for (x = 0; x < 5; ++x) {
-            double ev = te_eval(expr1);
+            double ev;
+
+            ev = te_eval(expr1);
             lfequal(ev, cos(x) + sin(y));
 
             ev = te_eval(expr2);
@@ -256,7 +258,7 @@ void test_variables() {
 
             test = x;
             ev = te_eval(expr4);
-            lfequal(ev, x);
+            lfequal(ev, x+5);
         }
     }
 
@@ -287,6 +289,7 @@ void test_variables() {
 
 
 #define cross_check(a, b) do {\
+    if ((b)!=(b)) break;\
     expr = te_compile((a), lookup, 2, &err);\
     lfequal(te_eval(expr), (b));\
     lok(!err);\
@@ -486,6 +489,32 @@ void test_closure() {
     }
 }
 
+void test_optimize() {
+
+    test_case cases[] = {
+        {"5+5", 10},
+        {"pow(2,2)", 4},
+        {"sqrt 100", 10},
+    };
+
+    int i;
+    for (i = 0; i < sizeof(cases) / sizeof(test_case); ++i) {
+        const char *expr = cases[i].expr;
+        const double answer = cases[i].answer;
+
+        int err;
+        te_expr *ex = te_compile(expr, 0, 0, &err);
+        lok(ex);
+
+        /* The answer should be know without
+         * even running eval. */
+        lfequal(ex->value, answer);
+        lfequal(te_eval(ex), answer);
+
+        te_free(ex);
+    }
+}
+
 
 int main(int argc, char *argv[])
 {
@@ -496,6 +525,7 @@ int main(int argc, char *argv[])
     lrun("Functions", test_functions);
     lrun("Dynamic", test_dynamic);
     lrun("Closure", test_closure);
+    lrun("Optimize", test_optimize);
     lresults();
 
     return lfails != 0;
