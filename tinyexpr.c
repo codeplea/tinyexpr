@@ -94,8 +94,8 @@ void te_free(te_expr *n) {
 }
 
 
-static const double pi = 3.14159265358979323846;
-static const double e  = 2.71828182845904523536;
+static double pi() {return 3.14159265358979323846;}
+static double e() {return 2.71828182845904523536;}
 
 static const te_variable functions[] = {
     /* must be in alphabetical order */
@@ -107,12 +107,12 @@ static const te_variable functions[] = {
     {"ceil", ceil,    TE_FUNCTION1 | TE_FLAG_PURE},
     {"cos", cos,      TE_FUNCTION1 | TE_FLAG_PURE},
     {"cosh", cosh,    TE_FUNCTION1 | TE_FLAG_PURE},
-    {"e", &e,         TE_VARIABLE},
+    {"e", e,          TE_FUNCTION0 | TE_FLAG_PURE},
     {"exp", exp,      TE_FUNCTION1 | TE_FLAG_PURE},
     {"floor", floor,  TE_FUNCTION1 | TE_FLAG_PURE},
     {"ln", log,       TE_FUNCTION1 | TE_FLAG_PURE},
     {"log", log10,    TE_FUNCTION1 | TE_FLAG_PURE},
-    {"pi", &pi,       TE_VARIABLE},
+    {"pi", pi,        TE_FUNCTION0 | TE_FLAG_PURE},
     {"pow", pow,      TE_FUNCTION2 | TE_FLAG_PURE},
     {"sin", sin,      TE_FUNCTION1 | TE_FLAG_PURE},
     {"sinh", sinh,    TE_FUNCTION1 | TE_FLAG_PURE},
