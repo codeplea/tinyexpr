@@ -15,6 +15,7 @@ the standard C math functions and runtime binding of variables.
 - Simple and fast.
 - Implements standard operators precedence.
 - Exposes standard C math functions (sin, sqrt, ln, etc.).
+- Can add custom functions and variables easily.
 - Can bind variables at eval-time.
 - Released under the zlib license - free for nearly any use.
 - Easy to use and integrate with your code
@@ -168,6 +169,23 @@ This produces the output:
                 5.000000
 
 
+##Binding to Custom Functions
+
+TinyExpr can also call to custom functions implemented in C. Here is a short example:
+
+```C
+double my_sum(double a, double b) {
+    /* Example C function that adds two numbers together. */
+    return a + b;
+}
+
+te_variable vars[] = {
+    {"mysum", my_sum, TE_FUNCTION2} /* TE_FUNCTION2 used because my_sum takes two arguments. */
+};
+
+te_expr *n = te_compile("mysum(5, 6)", vars, 1, 0);
+
+```
 
 
 ##How it works
@@ -219,7 +237,12 @@ TinyExpr parses the following grammar:
     <term>      =    <factor> {("*" | "/" | "%") <factor>}
     <factor>    =    <power> {"^" <power>}
     <power>     =    {("-" | "+")} <base>
-    <base>      =    <constant> | <variable> | <function-0> {"(" ")"} | <function-1> <power> | <function-2> "(" <expr> "," <expr> ")" | "(" <list> ")"
+    <base>      =    <constant>
+                   | <variable>
+                   | <function-0> {"(" ")"}
+                   | <function-1> <power>
+                   | <function-X> "(" <expr> {"," <expr>} ")"
+                   | "(" <list> ")"
 
 In addition, whitespace between tokens is ignored.
 
