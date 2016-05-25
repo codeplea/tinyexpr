@@ -28,6 +28,10 @@
 #include <string.h>
 #include <stdio.h>
 
+#ifndef NAN
+#define NAN (0.0/0.0)
+#endif
+
 typedef double (*te_fun2)(double, double);
 
 enum {
@@ -322,7 +326,7 @@ static te_expr *base(state *s) {
         default:
             ret = new_expr(0, 0);
             s->type = TOK_ERROR;
-            ret->value = 0.0/0.0;
+            ret->value = NAN;
             break;
     }
 
@@ -415,7 +419,7 @@ static te_expr *list(state *s) {
 
 
 double te_eval(const te_expr *n) {
-    if (!n) return 0.0/0.0;
+    if (!n) return NAN;
 
     switch(TYPE_MASK(n->type)) {
         case TE_CONSTANT: return n->value;
@@ -432,7 +436,7 @@ double te_eval(const te_expr *n) {
                 case 5: return TE_FUN(double, double, double, double, double)(M(0), M(1), M(2), M(3), M(4));
                 case 6: return TE_FUN(double, double, double, double, double, double)(M(0), M(1), M(2), M(3), M(4), M(5));
                 case 7: return TE_FUN(double, double, double, double, double, double, double)(M(0), M(1), M(2), M(3), M(4), M(5), M(6));
-                default: return 0.0/0.0;
+                default: return NAN;
             }
 
         case TE_CLOSURE0: case TE_CLOSURE1: case TE_CLOSURE2: case TE_CLOSURE3:
@@ -446,10 +450,10 @@ double te_eval(const te_expr *n) {
                 case 5: return TE_FUN(void*, double, double, double, double, double)(n->parameters[5], M(0), M(1), M(2), M(3), M(4));
                 case 6: return TE_FUN(void*, double, double, double, double, double, double)(n->parameters[6], M(0), M(1), M(2), M(3), M(4), M(5));
                 case 7: return TE_FUN(void*, double, double, double, double, double, double, double)(n->parameters[7], M(0), M(1), M(2), M(3), M(4), M(5), M(6));
-                default: return 0.0/0.0;
+                default: return NAN;
             }
 
-        default: return 0.0/0.0;
+        default: return NAN;
     }
 
 }
@@ -514,7 +518,7 @@ double te_interp(const char *expression, int *error) {
         ret = te_eval(n);
         te_free(n);
     } else {
-        ret = 0.0/0.0;
+        ret = NAN;
     }
     return ret;
 }
