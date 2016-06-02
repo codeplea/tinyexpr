@@ -68,6 +68,7 @@ static te_expr *new_expr(const int type, const te_expr *parameters[]) {
     const int psize = sizeof(void*) * arity;
     const int size = sizeof(te_expr) + psize + (IS_CLOSURE(type) ? sizeof(void*) : 0);
     te_expr *ret = malloc(size);
+    memset(ret, 0, size);
     if (arity && parameters) {
         memcpy(ret->parameters, parameters, psize);
     }
