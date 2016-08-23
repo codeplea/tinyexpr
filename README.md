@@ -258,16 +258,38 @@ Valid variable names are any combination of the lower case letters *a* through
 TinyExpr supports addition (+), subtraction/negation (-), multiplication (\*),
 division (/), exponentiation (^) and modulus (%) with the normal operator
 precedence (the one exception being that exponentiation is evaluated
-left-to-right).
+left-to-right, but this can be changed - see below).
 
 In addition, the following C math functions are also supported:
 
-- abs (calls to *fabs*), acos, asin, atan, atan2, ceil, cos, cosh, exp, floor, ln (calls to *log*), log (calls to *log10*), pow, sin, sinh, sqrt, tan, tanh
+- abs (calls to *fabs*), acos, asin, atan, atan2, ceil, cos, cosh, exp, floor, ln (calls to *log*), log (calls to *log10* by default, see below), log10, pow, sin, sinh, sqrt, tan, tanh
 
 Also, the following constants are available:
 
 - `pi`, `e`
 
+
+##Compile-time options
+
+
+By default, TinyExpr does exponentation from left to right. For example:
+
+`a^b^c == (a^b)^c` and `-a^b == (-a)^b`
+
+This is by design. It's the way that spreadsheets do it (e.g. Excel, Google Sheets).
+
+
+If you would rather have exponentation work from right to left, you need to
+define `TE_POW_FROM_RIGHT` when compiling `tinyexpr.c`. There is a
+commented-out define near the top of that file. With this option enabled, the
+behaviour is:
+
+`a^b^c == a^(b^c)` and `-a^b == -(a^b)`
+
+That will match how many scripting languages do it (e.g. Python, Ruby).
+
+Also, if you'd like `log` to default to the natural log instead of `log10`,
+then you can define `TE_NAT_LOG`.
 
 ##Hints
 
