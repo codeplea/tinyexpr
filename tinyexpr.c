@@ -172,12 +172,12 @@ static double comma(double a, double b) {return b;}
 void next_token(state *s) {
     s->type = TOK_NULL;
 
-    if (!*s->next){
-        s->type = TOK_END;
-        return;
-    }
-
     do {
+
+        if (!*s->next){
+            s->type = TOK_END;
+            return;
+        }
 
         /* Try reading a number. */
         if ((s->next[0] >= '0' && s->next[0] <= '9') || s->next[0] == '.') {

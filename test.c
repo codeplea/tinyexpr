@@ -38,6 +38,7 @@ typedef struct {
 void test_results() {
     test_case cases[] = {
         {"1", 1},
+        {"1 ", 1},
         {"(1)", 1},
 
         {"pi", 3.14159},
