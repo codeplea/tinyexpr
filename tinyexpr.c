@@ -149,11 +149,13 @@ static const te_variable *find_builtin(const char *name, int len) {
 }
 
 static const te_variable *find_lookup(const state *s, const char *name, int len) {
-    int i;
+    int iters;
+    const te_variable *var;
     if (!s->lookup) return 0;
-    for (i = 0; i < s->lookup_len; ++i) {
-        if (strncmp(name, s->lookup[i].name, len) == 0 && s->lookup[i].name[len] == '\0') {
-            return s->lookup + i;
+
+    for (var = s->lookup, iters = s->lookup_len; iters; ++var, --iters) {
+        if (strncmp(name, var->name, len) == 0 && var->name[len] == '\0') {
+            return var;
         }
     }
     return 0;
