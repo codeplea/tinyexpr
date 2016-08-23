@@ -29,6 +29,10 @@ For a^b^c = (a^b)^c and -a^b = (-a)^b do nothing.
 For a^b^c = a^(b^c) and -a^b = -(a^b) uncomment the next line.*/
 /* #define TE_POW_FROM_RIGHT */
 
+/* Logarithms
+For log = base 10 log do nothing
+For log = natural log uncomment the next line. */
+/* #define TE_NAT_LOG */
 
 #include "tinyexpr.h"
 #include <stdlib.h>
@@ -124,7 +128,12 @@ static const te_variable functions[] = {
     {"exp", exp,      TE_FUNCTION1 | TE_FLAG_PURE},
     {"floor", floor,  TE_FUNCTION1 | TE_FLAG_PURE},
     {"ln", log,       TE_FUNCTION1 | TE_FLAG_PURE},
+#ifdef TE_NAT_LOG
+    {"log", log,      TE_FUNCTION1 | TE_FLAG_PURE},
+#else
     {"log", log10,    TE_FUNCTION1 | TE_FLAG_PURE},
+#endif
+    {"log10", log10,  TE_FUNCTION1 | TE_FLAG_PURE},
     {"pi", pi,        TE_FUNCTION0 | TE_FLAG_PURE},
     {"pow", pow,      TE_FUNCTION2 | TE_FLAG_PURE},
     {"sin", sin,      TE_FUNCTION1 | TE_FLAG_PURE},
