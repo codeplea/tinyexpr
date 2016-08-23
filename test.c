@@ -90,15 +90,24 @@ void test_results() {
         {"asin sin (-0.5)", -0.5},
         {"(asin sin (-0.5))", -0.5},
 
-        {"log 1000", 3},
-        {"log 1e3", 3},
-        {"log 1000", 3},
-        {"log 1e3", 3},
-        {"log(1000)", 3},
-        {"log(1e3)", 3},
-        {"log 1.0e3", 3},
+        {"log10 1000", 3},
+        {"log10 1e3", 3},
+        {"log10 1000", 3},
+        {"log10 1e3", 3},
+        {"log10(1000)", 3},
+        {"log10(1e3)", 3},
+        {"log10 1.0e3", 3},
         {"10^5*5e-5", 5},
 
+#ifdef TE_NAT_LOG
+        {"log 1000", 6.9078},
+        {"log e", 1},
+        {"log (e^10)", 10},
+#else
+        {"log 1000", 3},
+#endif
+
+        {"ln (e^10)", 10},
         {"100^.5+1", 11},
         {"100 ^.5+1", 11},
         {"100^+.5+1", 11},
@@ -320,7 +329,7 @@ void test_functions() {
         cross_check("exp x", exp(x));
         cross_check("floor x", floor(x));
         cross_check("ln x", log(x));
-        cross_check("log x", log10(x));
+        cross_check("log10 x", log10(x));
         cross_check("sin x", sin(x));
         cross_check("sinh x", sinh(x));
         cross_check("sqrt x", sqrt(x));

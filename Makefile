@@ -2,13 +2,16 @@ CCFLAGS = -ansi -Wall -Wshadow -O2
 LFLAGS = -lm
 
 
-all: test bench example example2 example3
+all: test test_pr bench example example2 example3
 
 
-test: test.o tinyexpr.o
+test: test.c tinyexpr.c
 	$(CC) $(CCFLAGS) -o $@ $^ $(LFLAGS)
 	./$@
 
+test_pr: test.c tinyexpr.c
+	$(CC) $(CCFLAGS) -DTE_POW_FROM_RIGHT -DTE_NAT_LOG -o $@ $^ $(LFLAGS)
+	./$@
 
 bench: benchmark.o tinyexpr.o
 	$(CC) $(CCFLAGS) -o $@ $^ $(LFLAGS)
@@ -24,7 +27,6 @@ example3: example3.o tinyexpr.o
 
 .c.o:
 	$(CC) -c $(CCFLAGS) $< -o $@
-
 
 clean:
 	rm *.o
