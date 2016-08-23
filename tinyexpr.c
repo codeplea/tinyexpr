@@ -384,11 +384,9 @@ static te_expr *factor(state *s) {
 
     if (ret->type == (TE_FUNCTION1 | TE_FLAG_PURE) && ret->function == negate) {
         te_expr *se = ret->parameters[0];
-        if (se->type != TE_CONSTANT) {
-            free(ret);
-            ret = se;
-            neg = 1;
-        }
+        free(ret);
+        ret = se;
+        neg = 1;
     }
 
     while (s->type == TOK_INFIX && (s->function == pow)) {
