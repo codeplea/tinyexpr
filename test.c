@@ -32,6 +32,10 @@ typedef struct {
     double answer;
 } test_case;
 
+typedef struct {
+    const char *expr1;
+    const char *expr2;
+} test_equ;
 
 
 
@@ -517,6 +521,58 @@ void test_optimize() {
     }
 }
 
+void test_pow() {
+#ifdef TE_POW_FROM_RIGHT
+    test_equ cases[] = {
+        {"2^3^4", "2^(3^4)"},
+        {"-2^2", "-(2^2)"},
+        {"-(2)^2", "-(2^2)"},
+        {"-(2*1)^2", "-(2^2)"},
+        {"-2^2", "-4"},
+        {"2^1.1^1.2^1.3", "2^(1.1^(1.2^1.3))"},
+        {"-a^b", "-(a^b)"},
+        {"-a^-b", "-(a^-b)"}
+    };
+#else
+    test_equ cases[] = {
+        {"2^3^4", "(2^3)^4"},
+        {"-2^2", "(-2)^2"},
+        {"-2^2", "4"},
+        {"2^1.1^1.2^1.3", "((2^1.1)^1.2)^1.3"},
+        {"-a^b", "(-a)^b"},
+        {"-a^-b", "(-a)^(-b)"}
+    };
+#endif
+
+    double a = 2, b = 3;
+
+    te_variable lookup[] = {
+        {"a", &a},
+        {"b", &b}
+    };
+
+    int i;
+    for (i = 0; i < sizeof(cases) / sizeof(test_equ); ++i) {
+        const char *expr1 = cases[i].expr1;
+        const char *expr2 = cases[i].expr2;
+
+        te_expr *ex1 = te_compile(expr1, lookup, sizeof(lookup)/sizeof(te_variable), 0);
+        te_expr *ex2 = te_compile(expr2, lookup, sizeof(lookup)/sizeof(te_variable), 0);
+
+        lok(ex1);
+        lok(ex2);
+
+        double r1 = te_eval(ex1);
+        double r2 = te_eval(ex2);
+
+        fflush(stdout);
+        lfequal(r1, r2);
+
+        te_free(ex1);
+        te_free(ex2);
+    }
+
+}
 
 int main(int argc, char *argv[])
 {
@@ -528,6 +584,7 @@ int main(int argc, char *argv[])
     lrun("Dynamic", test_dynamic);
     lrun("Closure", test_closure);
     lrun("Optimize", test_optimize);
+    lrun("Pow", test_pow);
     lresults();
 
     return lfails != 0;
