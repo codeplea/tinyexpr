@@ -237,7 +237,7 @@ void test_nans() {
 void test_variables() {
 
     double x, y, test;
-    te_variable lookup[] = {{"x", &x}, {"y", &y}, {"test", &test}};
+    te_variable lookup[] = {{"x", &x}, {"y", &y}, {"te_st", &test}};
 
     int err;
 
@@ -253,7 +253,7 @@ void test_variables() {
     lok(expr3);
     lok(!err);
 
-    te_expr *expr4 = te_compile("test+5", lookup, 3, &err);
+    te_expr *expr4 = te_compile("te_st+5", lookup, 3, &err);
     lok(expr4);
     lok(!err);
 
