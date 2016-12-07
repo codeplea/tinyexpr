@@ -23,6 +23,11 @@ the standard C math functions and runtime binding of variables.
 - Easy to use and integrate with your code
 - Thread-safe, provided that your *malloc* is.
 
+##Building
+
+TinyExpr is self-contained in two files: `tinyexpr.c` and `tinyexpr.h`. To use
+TinyExpr, simply add those two files to your project.
+
 ##Short Example
 
 Here is a minimal example to evaluate an expression at runtime.
