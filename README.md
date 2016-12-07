@@ -1,7 +1,9 @@
 [![Build Status](https://travis-ci.org/codeplea/tinyexpr.svg?branch=master)](https://travis-ci.org/codeplea/tinyexpr)
 
-#TinyExpr
 
+<img src="https://codeplea.com/public/content/tinyexpr_logo.png" align="right" style="float: right;"/>
+
+#TinyExpr
 
 TinyExpr is a very small recursive descent parser and evaluation engine for
 math expressions. It's handy when you want to add the ability to evaluation
