@@ -1,7 +1,7 @@
 [![Build Status](https://travis-ci.org/codeplea/tinyexpr.svg?branch=master)](https://travis-ci.org/codeplea/tinyexpr)
 
 
-<img src="https://codeplea.com/public/content/tinyexpr_logo.png" align="right" style="float: right;"/>
+<img alt="TinyExpr logo" src="https://codeplea.com/public/content/tinyexpr_logo.png" align="right"/>
 
 #TinyExpr
 
