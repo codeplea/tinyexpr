@@ -1,7 +1,9 @@
 [![Build Status](https://travis-ci.org/codeplea/tinyexpr.svg?branch=master)](https://travis-ci.org/codeplea/tinyexpr)
 
-#TinyExpr
 
+<img alt="TinyExpr logo" src="https://codeplea.com/public/content/tinyexpr_logo.png" align="right"/>
+
+#TinyExpr
 
 TinyExpr is a very small recursive descent parser and evaluation engine for
 math expressions. It's handy when you want to add the ability to evaluation
@@ -22,6 +24,11 @@ the standard C math functions and runtime binding of variables.
 - Released under the zlib license - free for nearly any use.
 - Easy to use and integrate with your code
 - Thread-safe, provided that your *malloc* is.
+
+##Building
+
+TinyExpr is self-contained in two files: `tinyexpr.c` and `tinyexpr.h`. To use
+TinyExpr, simply add those two files to your project.
 
 ##Short Example
 
