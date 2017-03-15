@@ -39,10 +39,16 @@ For log = natural log uncomment the next line. */
 #include <math.h>
 #include <string.h>
 #include <stdio.h>
+#include <limits.h>
 
 #ifndef NAN
 #define NAN (0.0/0.0)
 #endif
+
+#ifndef INFINITY
+#define INFINITY (1.0/0.0)
+#endif
+
 
 typedef double (*te_fun2)(double, double);
 
@@ -113,6 +119,20 @@ void te_free(te_expr *n) {
 
 static double pi() {return 3.14159265358979323846;}
 static double e() {return 2.71828182845904523536;}
+static double fac(double a) {/* simplest version of fac */
+    if (a < 0.0)
+        return NAN;
+    if (a > UINT_MAX)
+        return INFINITY;
+    unsigned int ua = (unsigned int)(a);
+    unsigned long int result = 1, i = 1;
+    for (i = 1; i <= ua; i++) {
+        if (ua > ULONG_MAX / result)
+            return INFINITY;
+        result *= i;
+    }
+    return (double)result;
+}
 
 static const te_variable functions[] = {
     /* must be in alphabetical order */
@@ -126,6 +146,7 @@ static const te_variable functions[] = {
     {"cosh", cosh,    TE_FUNCTION1 | TE_FLAG_PURE, 0},
     {"e", e,          TE_FUNCTION0 | TE_FLAG_PURE, 0},
     {"exp", exp,      TE_FUNCTION1 | TE_FLAG_PURE, 0},
+    {"fac", fac,      TE_FUNCTION1 | TE_FLAG_PURE, 0},
     {"floor", floor,  TE_FUNCTION1 | TE_FLAG_PURE, 0},
     {"ln", log,       TE_FUNCTION1 | TE_FLAG_PURE, 0},
 #ifdef TE_NAT_LOG
