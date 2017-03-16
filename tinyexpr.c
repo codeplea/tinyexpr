@@ -127,7 +127,7 @@ static double fac(double a) {/* simplest version of fac */
     unsigned int ua = (unsigned int)(a);
     unsigned long int result = 1, i = 1;
     for (i = 1; i <= ua; i++) {
-        if (ua > ULONG_MAX / result)
+        if (i > ULONG_MAX / result)
             return INFINITY;
         result *= i;
     }
