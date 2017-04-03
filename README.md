@@ -287,14 +287,14 @@ Also, the following constants are available:
 ## Compile-time options
 
 
-By default, TinyExpr does exponentation from left to right. For example:
+By default, TinyExpr does exponentiation from left to right. For example:
 
 `a^b^c == (a^b)^c` and `-a^b == (-a)^b`
 
 This is by design. It's the way that spreadsheets do it (e.g. Excel, Google Sheets).
 
 
-If you would rather have exponentation work from right to left, you need to
+If you would rather have exponentiation work from right to left, you need to
 define `TE_POW_FROM_RIGHT` when compiling `tinyexpr.c`. There is a
 commented-out define near the top of that file. With this option enabled, the
 behaviour is:
