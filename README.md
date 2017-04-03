@@ -269,9 +269,15 @@ division (/), exponentiation (^) and modulus (%) with the normal operator
 precedence (the one exception being that exponentiation is evaluated
 left-to-right, but this can be changed - see below).
 
-In addition, the following C math functions are also supported:
+The following C math functions are also supported:
 
 - abs (calls to *fabs*), acos, asin, atan, atan2, ceil, cos, cosh, exp, floor, ln (calls to *log*), log (calls to *log10* by default, see below), log10, pow, sin, sinh, sqrt, tan, tanh
+
+The following functions are also built-in and provided by TinyExpr:
+
+- fac (factorials e.g. `fac 5` == 120)
+- ncr (combinations e.g. `ncr(6,2)` == 15)
+- npr (permutations e.g. `npr(6,2)` == 30)
 
 Also, the following constants are available:
 
