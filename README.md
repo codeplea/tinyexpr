@@ -3,7 +3,7 @@
 
 <img alt="TinyExpr logo" src="https://codeplea.com/public/content/tinyexpr_logo.png" align="right"/>
 
-#TinyExpr
+# TinyExpr
 
 TinyExpr is a very small recursive descent parser and evaluation engine for
 math expressions. It's handy when you want to add the ability to evaluation
@@ -12,7 +12,7 @@ math expressions at runtime without adding a bunch of cruft to you project.
 In addition to the standard math operators and precedence, TinyExpr also supports
 the standard C math functions and runtime binding of variables.
 
-##Features
+## Features
 
 - **ANSI C with no dependencies**.
 - Single source file and header file.
@@ -25,12 +25,12 @@ the standard C math functions and runtime binding of variables.
 - Easy to use and integrate with your code
 - Thread-safe, provided that your *malloc* is.
 
-##Building
+## Building
 
 TinyExpr is self-contained in two files: `tinyexpr.c` and `tinyexpr.h`. To use
 TinyExpr, simply add those two files to your project.
 
-##Short Example
+## Short Example
 
 Here is a minimal example to evaluate an expression at runtime.
 
@@ -40,7 +40,7 @@ Here is a minimal example to evaluate an expression at runtime.
 ```
 
 
-##Usage
+## Usage
 
 TinyExpr defines only four functions:
 
@@ -51,7 +51,7 @@ TinyExpr defines only four functions:
     void te_free(te_expr *expr);
 ```
 
-##te_interp
+## te_interp
 ```C
     double te_interp(const char *expression, int *error);
 ```
@@ -72,7 +72,7 @@ of the parse error on failure, and set `*error` to 0 on success.
     double c = te_interp("(5+5", &error); /* Returns NaN, error is set to 4. */
 ```
 
-##te_compile, te_eval, te_free
+## te_compile, te_eval, te_free
 ```C
     te_expr *te_compile(const char *expression, const te_variable *lookup, int lookup_len, int *error);
     double te_eval(const te_expr *n);
@@ -117,7 +117,7 @@ After you're finished, make sure to call `te_free()`.
 
 ```
 
-##Longer Example
+## Longer Example
 
 Here is a complete example that will evaluate an expression passed in from the command
 line. It also does error checking and binds the variables `x` and `y` to *3* and *4*, respectively.
@@ -178,7 +178,7 @@ This produces the output:
                 5.000000
 
 
-##Binding to Custom Functions
+## Binding to Custom Functions
 
 TinyExpr can also call to custom functions implemented in C. Here is a short example:
 
@@ -197,7 +197,7 @@ te_expr *n = te_compile("mysum(5, 6)", vars, 1, 0);
 ```
 
 
-##How it works
+## How it works
 
 `te_compile()` uses a simple recursive descent parser to compile your
 expression into a syntax tree. For example, the expression `"sin x + 1/4"`
@@ -216,7 +216,7 @@ and return the result of the expression.
 `te_free()` should always be called when you're done with the compiled expression.
 
 
-##Speed
+## Speed
 
 
 TinyExpr is pretty fast compared to C when the expression is short, when the
@@ -237,7 +237,7 @@ Here is some example performance numbers taken from the included
 
 
 
-##Grammar
+## Grammar
 
 TinyExpr parses the following grammar:
 
@@ -262,33 +262,39 @@ notation (e.g.  *1e3* for *1000*). A leading zero is not required (e.g. *.5*
 for *0.5*)
 
 
-##Functions supported
+## Functions supported
 
 TinyExpr supports addition (+), subtraction/negation (-), multiplication (\*),
 division (/), exponentiation (^) and modulus (%) with the normal operator
 precedence (the one exception being that exponentiation is evaluated
 left-to-right, but this can be changed - see below).
 
-In addition, the following C math functions are also supported:
+The following C math functions are also supported:
 
 - abs (calls to *fabs*), acos, asin, atan, atan2, ceil, cos, cosh, exp, floor, ln (calls to *log*), log (calls to *log10* by default, see below), log10, pow, sin, sinh, sqrt, tan, tanh
+
+The following functions are also built-in and provided by TinyExpr:
+
+- fac (factorials e.g. `fac 5` == 120)
+- ncr (combinations e.g. `ncr(6,2)` == 15)
+- npr (permutations e.g. `npr(6,2)` == 30)
 
 Also, the following constants are available:
 
 - `pi`, `e`
 
 
-##Compile-time options
+## Compile-time options
 
 
-By default, TinyExpr does exponentation from left to right. For example:
+By default, TinyExpr does exponentiation from left to right. For example:
 
 `a^b^c == (a^b)^c` and `-a^b == (-a)^b`
 
 This is by design. It's the way that spreadsheets do it (e.g. Excel, Google Sheets).
 
 
-If you would rather have exponentation work from right to left, you need to
+If you would rather have exponentiation work from right to left, you need to
 define `TE_POW_FROM_RIGHT` when compiling `tinyexpr.c`. There is a
 commented-out define near the top of that file. With this option enabled, the
 behaviour is:
@@ -300,7 +306,7 @@ That will match how many scripting languages do it (e.g. Python, Ruby).
 Also, if you'd like `log` to default to the natural log instead of `log10`,
 then you can define `TE_NAT_LOG`.
 
-##Hints
+## Hints
 
 - All functions/types start with the letters *te*.
 

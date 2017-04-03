@@ -213,6 +213,13 @@ void test_nans() {
         "1%0",
         "1%(1%0)",
         "(1%0)%1",
+        "fac(-1)",
+        "ncr(2, 4)",
+        "ncr(-2, 4)",
+        "ncr(2, -4)",
+        "npr(2, 4)",
+        "npr(-2, 4)",
+        "npr(2, -4)",
     };
 
     int i;
@@ -229,6 +236,40 @@ void test_nans() {
         lequal(err, 0);
         const double c = te_eval(n);
         lok(c != c);
+        te_free(n);
+    }
+}
+
+
+void test_infs() {
+
+    const char *infs[] = {
+            "1/0",
+            "log(0)",
+            "pow(2,10000000)",
+            "fac(300)",
+            "ncr(300,100)",
+            "ncr(300000,100)",
+            "ncr(300000,100)*8",
+            "npr(3,2)*ncr(300000,100)",
+            "npr(100,90)",
+            "npr(30,25)",
+    };
+
+    int i;
+    for (i = 0; i < sizeof(infs) / sizeof(const char *); ++i) {
+        const char *expr = infs[i];
+
+        int err;
+        const double r = te_interp(expr, &err);
+        lequal(err, 0);
+        lok(r == r + 1);
+
+        te_expr *n = te_compile(expr, 0, 0, &err);
+        lok(n);
+        lequal(err, 0);
+        const double c = te_eval(n);
+        lok(c == c + 1);
         te_free(n);
     }
 }
@@ -587,17 +628,63 @@ void test_pow() {
 
 }
 
+void test_combinatorics() {
+    test_case cases[] = {
+            {"fac(0)", 1},
+            {"fac(0.2)", 1},
+            {"fac(1)", 1},
+            {"fac(2)", 2},
+            {"fac(3)", 6},
+            {"fac(4.8)", 24},
+            {"fac(10)", 3628800},
+
+            {"ncr(0,0)", 1},
+            {"ncr(10,1)", 10},
+            {"ncr(10,0)", 1},
+            {"ncr(10,10)", 1},
+            {"ncr(16,7)", 11440},
+            {"ncr(16,9)", 11440},
+            {"ncr(100,95)", 75287520},
+
+            {"npr(0,0)", 1},
+            {"npr(10,1)", 10},
+            {"npr(10,0)", 1},
+            {"npr(10,10)", 3628800},
+            {"npr(20,5)", 1860480},
+            {"npr(100,4)", 94109400},
+    };
+
+
+    int i;
+    for (i = 0; i < sizeof(cases) / sizeof(test_case); ++i) {
+        const char *expr = cases[i].expr;
+        const double answer = cases[i].answer;
+
+        int err;
+        const double ev = te_interp(expr, &err);
+        lok(!err);
+        lfequal(ev, answer);
+
+        if (err) {
+            printf("FAILED: %s (%d)\n", expr, err);
+        }
+    }
+}
+
+
 int main(int argc, char *argv[])
 {
     lrun("Results", test_results);
     lrun("Syntax", test_syntax);
     lrun("NaNs", test_nans);
+    lrun("INFs", test_infs);
     lrun("Variables", test_variables);
     lrun("Functions", test_functions);
     lrun("Dynamic", test_dynamic);
     lrun("Closure", test_closure);
     lrun("Optimize", test_optimize);
     lrun("Pow", test_pow);
+    lrun("Combinatorics", test_combinatorics);
     lresults();
 
     return lfails != 0;
