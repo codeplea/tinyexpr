@@ -1,6 +1,7 @@
 CCFLAGS = -ansi -Wall -Wshadow -O2
 LFLAGS = -lm
 
+.PHONY = all clean
 
 all: test test_pr bench example example2 example3
 
