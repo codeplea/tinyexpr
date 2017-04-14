@@ -29,5 +29,4 @@ example3: example3.o tinyexpr.o
 	$(CC) -c $(CCFLAGS) $< -o $@
 
 clean:
-	rm *.o
-	rm *.exe
+	rm -f *.o *.exe example example2 example3 bench test_pr test
