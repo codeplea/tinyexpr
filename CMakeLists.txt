@@ -11,7 +11,7 @@ option(build_tinyexpr_example3 "Build TinyExpr example 3." OFF)
 
 find_library(MATH_LIB m)
 
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -ansi -Wall -Wshadow -O2")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -ansi -Wall -Wshadow -fPIC -O3")
 
 set(SOURCE_FILES
         tinyexpr.c
