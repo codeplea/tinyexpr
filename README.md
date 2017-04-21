@@ -117,6 +117,28 @@ After you're finished, make sure to call `te_free()`.
 
 ```
 
+## te_astree, te_inner_func ##
+
+```c
+const te_variable* te_inner_func(int* len);
+te_expr *te_astree(const char* expression, const te_variable* variables, int var_count, int* error);
+```
+
+since `te_compile` have optimize. If you just want to get raw ast tree, and do it with another way. you can use `te_astree` . then every node has a function address. so you should use `te_inner_func` to know which address meas what operation.
+
+**example usage:** 
+
+```c
+te_expr* root = te_astree("1+2", NULL, 0, NULL);
+//find add address
+for (te_variable* ptr = te_inner_func(NULL); ptr->name; ++ptr) {
+  if (strcmp(ptr->name,"add")==0) break;
+}
+// know inner function address, we can know what function it is 
+printf("%d %s %d", ((te_expr*)root->params[0])->value, root->func == ptr->address ? ptr->name : "unknow", (te_expr*)root->params[1]->value);
+te_free(root);
+```
+
 ## Longer Example
 
 Here is a complete example that will evaluate an expression passed in from the command
@@ -227,13 +249,13 @@ expression is long and involves only basic arithmetic.
 Here is some example performance numbers taken from the included
 **benchmark.c** program:
 
-| Expression | te_eval time | native C time | slowdown  |
-| :------------- |-------------:| -----:|----:|
-| sqrt(a^1.5+a^2.5) | 15,641 ms | 14,478 ms | 8% slower |
-| a+5 | 765 ms | 563 ms | 36% slower |
-| a+(5*2) | 765 ms | 563 ms | 36% slower |
-| (a+5)*2 | 1422 ms | 563 ms | 153% slower |
-| (1/(a+1)+2/(a+2)+3/(a+3)) | 5,516 ms | 1,266 ms | 336% slower |
+| Expression                | te_eval time | native C time |    slowdown |
+| :------------------------ | -----------: | ------------: | ----------: |
+| sqrt(a^1.5+a^2.5)         |    15,641 ms |     14,478 ms |   8% slower |
+| a+5                       |       765 ms |        563 ms |  36% slower |
+| a+(5*2)                   |       765 ms |        563 ms |  36% slower |
+| (a+5)*2                   |      1422 ms |        563 ms | 153% slower |
+| (1/(a+1)+2/(a+2)+3/(a+3)) |     5,516 ms |      1,266 ms | 336% slower |
 
 
 
@@ -246,7 +268,8 @@ TinyExpr parses the following grammar:
     <term>      =    <factor> {("*" | "/" | "%") <factor>}
     <factor>    =    <power> {"^" <power>}
     <power>     =    {("-" | "+")} <base>
-    <base>      =    <constant>
+    <base>      =    <constant> 
+                   | <constant> {("%" | "!")} // with compile option
                    | <variable>
                    | <function-0> {"(" ")"}
                    | <function-1> <power>
@@ -305,6 +328,10 @@ That will match how many scripting languages do it (e.g. Python, Ruby).
 
 Also, if you'd like `log` to default to the natural log instead of `log10`,
 then you can define `TE_NAT_LOG`.
+
+Also, tinyexpr support math percent symbol and fac symbol. Like `25% == 0.25` and `5! == 120`.
+
+Just open `TE_INFIX_PER` and `TE_INFIX_FAC`
 
 ## Hints
 

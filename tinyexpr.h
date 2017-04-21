@@ -59,6 +59,9 @@ typedef struct te_variable {
 } te_variable;
 
 
+/* Provide a way to visit inner function address */
+/* len include all element ( all zero element included */
+const te_variable* te_inner_func(int* len);
 
 /* Parses the input expression, evaluates it, and frees it. */
 /* Returns NaN on error. */
@@ -67,6 +70,10 @@ double te_interp(const char *expression, int *error);
 /* Parses the input expression and binds variables. */
 /* Returns NULL on error. */
 te_expr *te_compile(const char *expression, const te_variable *variables, int var_count, int *error);
+
+/* like te_compile but return raw ast tree. no optimize */
+/* Returns NULL on error. */
+te_expr *te_astree(const char* expression, const te_variable* variables, int var_count, int* error);
 
 /* Evaluates the expression. */
 double te_eval(const te_expr *n);

@@ -144,6 +144,15 @@ void test_results() {
         {"atan2((3+3),4*2)", 0.6435},
         {"atan2((3+3),(4*2))", 0.6435},
 
+#ifdef TE_INFIX_PER
+        {"25%", 0.25},
+#endif
+
+#ifdef TE_INFIX_FAC
+        {"5!", 120},
+        {"0!", 1},
+#endif
+
     };
 
 
@@ -210,9 +219,11 @@ void test_nans() {
 
     const char *nans[] = {
         "0/0",
+#ifndef TE_INFIX_PER
         "1%0",
         "1%(1%0)",
         "(1%0)%1",
+#endif
         "fac(-1)",
         "ncr(2, 4)",
         "ncr(-2, 4)",

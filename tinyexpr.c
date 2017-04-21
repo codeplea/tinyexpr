@@ -34,6 +34,16 @@ For log = base 10 log do nothing
 For log = natural log uncomment the next line. */
 /* #define TE_NAT_LOG */
 
+/* Percent support
+ * '25%' -> percent(25)
+ */
+/* #define TE_INFIX_PER */
+
+/* Math fac support
+ * '25!' -> fac(25)
+ */
+/* #define TE_INFIX_FAC */
+
 #include "tinyexpr.h"
 #include <stdlib.h>
 #include <math.h>
@@ -149,16 +159,27 @@ static double ncr(double n, double r) {
 }
 static double npr(double n, double r) {return ncr(n, r) * fac(r);}
 
+static double add(double a, double b) {return a + b;}
+static double sub(double a, double b) {return a - b;}
+static double mul(double a, double b) {return a * b;}
+static double divide(double a, double b) {return a / b;}
+static double negate(double a) {return -a;}
+static double comma(double a, double b) {(void)a; return b;}
+static double percent(double a) {return a/100;}
+
 static const te_variable functions[] = {
     /* must be in alphabetical order */
     {"abs", fabs,     TE_FUNCTION1 | TE_FLAG_PURE, 0},
     {"acos", acos,    TE_FUNCTION1 | TE_FLAG_PURE, 0},
+    {"add", add,      TE_FUNCTION2 | TE_FLAG_PURE, 0},
     {"asin", asin,    TE_FUNCTION1 | TE_FLAG_PURE, 0},
     {"atan", atan,    TE_FUNCTION1 | TE_FLAG_PURE, 0},
     {"atan2", atan2,  TE_FUNCTION2 | TE_FLAG_PURE, 0},
     {"ceil", ceil,    TE_FUNCTION1 | TE_FLAG_PURE, 0},
+    {"comma", comma,  TE_FUNCTION2 | TE_FLAG_PURE, 0},
     {"cos", cos,      TE_FUNCTION1 | TE_FLAG_PURE, 0},
     {"cosh", cosh,    TE_FUNCTION1 | TE_FLAG_PURE, 0},
+    {"div", divide,   TE_FUNCTION2 | TE_FLAG_PURE, 0},
     {"e", e,          TE_FUNCTION0 | TE_FLAG_PURE, 0},
     {"exp", exp,      TE_FUNCTION1 | TE_FLAG_PURE, 0},
     {"fac", fac,      TE_FUNCTION1 | TE_FLAG_PURE, 0},
@@ -170,17 +191,31 @@ static const te_variable functions[] = {
     {"log", log10,    TE_FUNCTION1 | TE_FLAG_PURE, 0},
 #endif
     {"log10", log10,  TE_FUNCTION1 | TE_FLAG_PURE, 0},
+    {"mod", fmod,     TE_FUNCTION2 | TE_FLAG_PURE, 0},
+    {"mul", mul,      TE_FUNCTION2 | TE_FLAG_PURE, 0},
     {"ncr", ncr,      TE_FUNCTION2 | TE_FLAG_PURE, 0},
+    {"neg", negate,   TE_FUNCTION1 | TE_FLAG_PURE, 0},
     {"npr", npr,      TE_FUNCTION2 | TE_FLAG_PURE, 0},
+    {"percent", percent, TE_FUNCTION1 | TE_FLAG_PURE, 0},
     {"pi", pi,        TE_FUNCTION0 | TE_FLAG_PURE, 0},
     {"pow", pow,      TE_FUNCTION2 | TE_FLAG_PURE, 0},
     {"sin", sin,      TE_FUNCTION1 | TE_FLAG_PURE, 0},
     {"sinh", sinh,    TE_FUNCTION1 | TE_FLAG_PURE, 0},
     {"sqrt", sqrt,    TE_FUNCTION1 | TE_FLAG_PURE, 0},
+    {"sub", sub,      TE_FUNCTION2 | TE_FLAG_PURE, 0},
     {"tan", tan,      TE_FUNCTION1 | TE_FLAG_PURE, 0},
     {"tanh", tanh,    TE_FUNCTION1 | TE_FLAG_PURE, 0},
     {0, 0, 0, 0}
 };
+
+const te_variable* te_inner_func(int* len)
+{
+    if (len) {
+      *len = sizeof(functions) / sizeof(te_variable);
+    }
+    return functions;
+}
+
 
 static const te_variable *find_builtin(const char *name, int len) {
     int imin = 0;
@@ -216,14 +251,6 @@ static const te_variable *find_lookup(const state *s, const char *name, int len)
     return 0;
 }
 
-
-
-static double add(double a, double b) {return a + b;}
-static double sub(double a, double b) {return a - b;}
-static double mul(double a, double b) {return a * b;}
-static double divide(double a, double b) {return a / b;}
-static double negate(double a) {return -a;}
-static double comma(double a, double b) {(void)a; return b;}
 
 
 void next_token(state *s) {
@@ -280,7 +307,14 @@ void next_token(state *s) {
                     case '*': s->type = TOK_INFIX; s->function = mul; break;
                     case '/': s->type = TOK_INFIX; s->function = divide; break;
                     case '^': s->type = TOK_INFIX; s->function = pow; break;
+#ifdef TE_INFIX_PER
+                    case '%': s->type = TOK_INFIX; s->function = percent; break;
+#else
                     case '%': s->type = TOK_INFIX; s->function = fmod; break;
+#endif
+#ifdef TE_INFIX_FAC
+                    case '!': s->type = TOK_INFIX; s->function = fac; break;
+#endif
                     case '(': s->type = TOK_OPEN; break;
                     case ')': s->type = TOK_CLOSE; break;
                     case ',': s->type = TOK_SEP; break;
@@ -298,7 +332,7 @@ static te_expr *expr(state *s);
 static te_expr *power(state *s);
 
 static te_expr *base(state *s) {
-    /* <base>      =    <constant> | <variable> | <function-0> {"(" ")"} | <function-1> <power> | <function-X> "(" <expr> {"," <expr>} ")" | "(" <list> ")" */
+    /* <base>      =    <constant> { "%" | "!" } | <variable> | <function-0> {"(" ")"} | <function-1> <power> | <function-X> "(" <expr> {"," <expr>} ")" | "(" <list> ")" */
     te_expr *ret;
     int arity;
 
@@ -307,6 +341,11 @@ static te_expr *base(state *s) {
             ret = new_expr(TE_CONSTANT, 0);
             ret->value = s->value;
             next_token(s);
+            if (s->type == TOK_INFIX && (s->function == percent || s->function == fac)) {
+                ret = NEW_EXPR(TE_FUNCTION1, ret);
+                ret->function = s->function;
+                next_token(s);
+            }
             break;
 
         case TOK_VARIABLE:
@@ -585,8 +624,7 @@ static void optimize(te_expr *n) {
     }
 }
 
-
-te_expr *te_compile(const char *expression, const te_variable *variables, int var_count, int *error) {
+te_expr *te_astree(const char *expression, const te_variable *variables, int var_count, int *error) {
     state s;
     s.start = s.next = expression;
     s.lookup = variables;
@@ -603,10 +641,17 @@ te_expr *te_compile(const char *expression, const te_variable *variables, int va
         }
         return 0;
     } else {
-        optimize(root);
         if (error) *error = 0;
         return root;
     }
+}
+
+te_expr *te_compile(const char *expression, const te_variable *variables, int var_count, int *error) {
+    te_expr* root = te_astree(expression, variables, var_count, error);
+    if (root) {
+      optimize(root);
+    }
+    return root;
 }
 
 

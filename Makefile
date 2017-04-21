@@ -11,7 +11,7 @@ test: test.c tinyexpr.c
 	./$@
 
 test_pr: test.c tinyexpr.c
-	$(CC) $(CCFLAGS) -DTE_POW_FROM_RIGHT -DTE_NAT_LOG -o $@ $^ $(LFLAGS)
+	$(CC) $(CCFLAGS) -DTE_INFIX_PER -DTE_INFIX_FAC -DTE_POW_FROM_RIGHT -DTE_NAT_LOG -o $@ $^ $(LFLAGS)
 	./$@
 
 bench: benchmark.o tinyexpr.o
