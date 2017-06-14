@@ -29,6 +29,7 @@ if (TE_NAT_LOG)
 endif()
 target_link_libraries(tinyexpr ${MATH_LIB})
 install(TARGETS tinyexpr ARCHIVE DESTINATION lib)
+install(FILES tinyexpr.h DESTINATION include COMPONENT Devel)
 
 if (build_tinyexpr_test)
     add_executable(tinyexpr_test test.c tinyexpr.c)
