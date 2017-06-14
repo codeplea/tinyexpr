@@ -19,6 +19,12 @@ set(SOURCE_FILES
         )
 
 add_library(tinyexpr STATIC ${SOURCE_FILES})
+if (TE_POW_FROM_RIGHT)
+    target_compile_definitions(tinyexpr PRIVATE TE_POW_FROM_RIGHT)
+endif()
+if (TE_NAT_LOG)
+    target_compile_definitions(tinyexpr PRIVATE TE_NAT_LOG)
+endif()
 target_link_libraries(tinyexpr ${MATH_LIB})
 install(TARGETS tinyexpr ARCHIVE DESTINATION lib)
 
