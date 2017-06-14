@@ -20,6 +20,7 @@ set(SOURCE_FILES
 
 add_library(tinyexpr STATIC ${SOURCE_FILES})
 target_link_libraries(tinyexpr ${MATH_LIB})
+install(TARGETS tinyexpr ARCHIVE DESTINATION lib)
 
 if (build_tinyexpr_test)
     add_executable(tinyexpr_test test.c tinyexpr.c)
