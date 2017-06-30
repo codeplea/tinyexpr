@@ -229,9 +229,11 @@ static double greater(double a, double b) {return a > b;}
 static double greater_eq(double a, double b) {return a >= b;}
 static double lower(double a, double b) {return a < b;}
 static double lower_eq(double a, double b) {return a <= b;}
-static double logical_and(double a, double b) {return (int)(a + 0.5) == 1 && (int)(b + 0.5) == 1;}
-static double logical_or(double a, double b) {return (int)(a + 0.5) == 1 || (int)(b + 0.5) == 1;}
-static double logical_not(double a) {return (int)(a + 0.5) == 0;}
+static double equal(double a, double b) {return a == b;}
+static double not_equal(double a, double b) {return a != b;}
+static double logical_and(double a, double b) {return (int)a != 0 && (int)b != 0;}
+static double logical_or(double a, double b) {return (int)a != 0 || (int)b != 0;}
+static double logical_not(double a) {return (int)a == 0;}
 
 
 void next_token(state *s) {
@@ -289,7 +291,21 @@ void next_token(state *s) {
                     case '/': s->type = TOK_INFIX; s->function = divide; break;
                     case '^': s->type = TOK_INFIX; s->function = pow; break;
                     case '%': s->type = TOK_INFIX; s->function = fmod; break;
-                    case '!': s->type = TOK_INFIX; s->function = logical_not; break;
+                    case '!':
+                        if (s->next++[0] == '=') {
+                            s->type = TOK_INFIX; s->function = not_equal;
+                        } else {
+                            s->next--;
+                            s->type = TOK_INFIX; s->function = logical_not;
+                        }
+                        break;
+                    case '=':
+                        if (s->next++[0] == '=') {
+                            s->type = TOK_INFIX; s->function = equal;
+                        } else {
+                            s->type = TOK_ERROR;
+                        }
+                        break;
                     case '<':
                         if (s->next++[0] == '=') {
                             s->type = TOK_INFIX; s->function = lower_eq;
@@ -554,11 +570,11 @@ static te_expr *sum_expr(state *s) {
 
 
 static te_expr *test_expr(state *s) {
-    /* <expr>      =    <sum_expr> {(">" | ">=" | "<" | "<=") <sum_expr>} */
+    /* <expr>      =    <sum_expr> {(">" | ">=" | "<" | "<=" | "==" | "!=") <sum_expr>} */
     te_expr *ret = sum_expr(s);
 
     while (s->type == TOK_INFIX && (s->function == greater || s->function == greater_eq ||
-        s->function == lower || s->function == lower_eq)) {
+        s->function == lower || s->function == lower_eq || s->function == equal || s->function == not_equal)) {
         te_fun2 t = s->function;
         next_token(s);
         ret = NEW_EXPR(TE_FUNCTION2 | TE_FLAG_PURE, ret, sum_expr(s));
