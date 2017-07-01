@@ -231,9 +231,12 @@ static double lower(double a, double b) {return a < b;}
 static double lower_eq(double a, double b) {return a <= b;}
 static double equal(double a, double b) {return a == b;}
 static double not_equal(double a, double b) {return a != b;}
-static double logical_and(double a, double b) {return (int)a != 0 && (int)b != 0;}
-static double logical_or(double a, double b) {return (int)a != 0 || (int)b != 0;}
-static double logical_not(double a) {return (int)a == 0;}
+static double logical_and(double a, double b) {return a != 0.0 && b != 0.0;}
+static double logical_or(double a, double b) {return a != 0.0 || b != 0.0;}
+static double logical_not(double a) {return a == 0.0;}
+static double logical_notnot(double a) {return a != 0.0;}
+static double negate_logical_not(double a) {return -(a == 0.0);}
+static double negate_logical_notnot(double a) {return -(a != 0.0);}
 
 
 void next_token(state *s) {
@@ -450,23 +453,46 @@ static te_expr *base(state *s) {
 static te_expr *power(state *s) {
     /* <power>     =    {("-" | "+" | "!")} <base> */
     int sign = 1;
+    while (s->type == TOK_INFIX && (s->function == add || s->function == sub)) {
+        if (s->function == sub) sign = -sign;
+        next_token(s);
+    }
+
     int logical = 0;
     while (s->type == TOK_INFIX && (s->function == add || s->function == sub || s->function == logical_not)) {
-        if (s->function == sub) sign = -sign;
-        if (s->function == logical_not) logical = 1;
+        if (s->function == logical_not) {
+            if (logical == 0) {
+                logical = -1;
+            } else {
+                logical = -logical;
+            }
+        }
         next_token(s);
     }
 
     te_expr *ret;
 
-    if (logical) {
-        ret = NEW_EXPR(TE_FUNCTION1 | TE_FLAG_PURE, base(s));
-        ret->function = logical_not;
-    } else if (sign == 1) {
-        ret = base(s);
+    if (sign == 1) {
+        if (logical == 0) {
+            ret = base(s);
+        } else if (logical == -1) {
+            ret = NEW_EXPR(TE_FUNCTION1 | TE_FLAG_PURE, base(s));
+            ret->function = logical_not;
+        } else {
+            ret = NEW_EXPR(TE_FUNCTION1 | TE_FLAG_PURE, base(s));
+            ret->function = logical_notnot;
+        }
     } else {
-        ret = NEW_EXPR(TE_FUNCTION1 | TE_FLAG_PURE, base(s));
-        ret->function = negate;
+        if (logical == 0) {
+            ret = NEW_EXPR(TE_FUNCTION1 | TE_FLAG_PURE, base(s));
+            ret->function = negate;
+        } else if (logical == -1) {
+            ret = NEW_EXPR(TE_FUNCTION1 | TE_FLAG_PURE, base(s));
+            ret->function = negate_logical_not;
+        } else {
+            ret = NEW_EXPR(TE_FUNCTION1 | TE_FLAG_PURE, base(s));
+            ret->function = negate_logical_notnot;
+        }
     }
 
     return ret;
@@ -477,20 +503,16 @@ static te_expr *factor(state *s) {
     /* <factor>    =    <power> {"^" <power>} */
     te_expr *ret = power(s);
 
-    int neg = 0;
-    int lnot = 0;
+    const void *left_function = NULL;
     te_expr *insertion = 0;
 
-    if (ret->type == (TE_FUNCTION1 | TE_FLAG_PURE)) {
+    if (ret->type == (TE_FUNCTION1 | TE_FLAG_PURE) &&
+        (ret->function == negate || ret->function == logical_not || ret->function == logical_notnot ||
+        ret->function == negate_logical_not || ret->function == negate_logical_notnot)) {
+        left_function = ret->function;
         te_expr *se = ret->parameters[0];
         free(ret);
         ret = se;
-
-        if (ret->function == negate) {
-            neg = 1;
-        } else if (ret->function == logical_not) {
-            lnot = 1;
-        }
     }
 
     while (s->type == TOK_INFIX && (s->function == pow)) {
@@ -510,13 +532,9 @@ static te_expr *factor(state *s) {
         }
     }
 
-    if (neg) {
+    if (left_function) {
         ret = NEW_EXPR(TE_FUNCTION1 | TE_FLAG_PURE, ret);
-        ret->function = negate;
-    }
-    if (lnot) {
-        ret = NEW_EXPR(TE_FUNCTION1 | TE_FLAG_PURE, ret);
-        ret->function = logical_not;
+        ret->function = left_function;
     }
 
     return ret;
