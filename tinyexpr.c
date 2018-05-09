@@ -117,8 +117,8 @@ void te_free(te_expr *n) {
 }
 
 
-static double pi() {return 3.14159265358979323846;}
-static double e() {return 2.71828182845904523536;}
+static double pi(void) {return 3.14159265358979323846;}
+static double e(void) {return 2.71828182845904523536;}
 static double fac(double a) {/* simplest version of fac */
     if (a < 0.0)
         return NAN;
