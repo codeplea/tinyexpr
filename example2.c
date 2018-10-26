@@ -14,7 +14,7 @@ int main(int argc, char *argv[])
     /* This shows an example where the variables
      * x and y are bound at eval-time. */
     double x, y;
-    te_variable vars[] = {{"x", &x}, {"y", &y}};
+    te_variable vars[] = {{"x", {&x}}, {"y", {&y}}};
 
     /* This will compile the expression and check for errors. */
     int err;

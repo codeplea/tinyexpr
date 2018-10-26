@@ -31,10 +31,30 @@ extern "C" {
 #endif
 
 
+union fun {
+    void *any;
+    double (*f0)(void);
+    double (*f1)(double);
+    double (*f2)(double,double);
+    double (*f3)(double,double,double);
+    double (*f4)(double,double,double,double);
+    double (*f5)(double,double,double,double,double);
+    double (*f6)(double,double,double,double,double,double);
+    double (*f7)(double,double,double,double,double,double,double);
+    double (*cl0)(void*);
+    double (*cl1)(void*,double);
+    double (*cl2)(void*,double,double);
+    double (*cl3)(void*,double,double,double);
+    double (*cl4)(void*,double,double,double,double);
+    double (*cl5)(void*,double,double,double,double,double);
+    double (*cl6)(void*,double,double,double,double,double,double);
+    double (*cl7)(void*,double,double,double,double,double,double,double);
+};
+  
 union value {
     double value;
     const double *bound;
-    const void *function;
+    union fun f;
 };
 
 typedef struct te_expr {
@@ -58,7 +78,7 @@ enum {
 
 typedef struct te_variable {
     const char *name;
-    const void *address;
+    const union fun address;
     int type;
     void *context;
 } te_variable;

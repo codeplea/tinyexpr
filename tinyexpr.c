@@ -151,35 +151,35 @@ static double npr(double n, double r) {return ncr(n, r) * fac(r);}
 
 static const te_variable functions[] = {
     /* must be in alphabetical order */
-    {"abs", fabs,     TE_FUNCTION1 | TE_FLAG_PURE, 0},
-    {"acos", acos,    TE_FUNCTION1 | TE_FLAG_PURE, 0},
-    {"asin", asin,    TE_FUNCTION1 | TE_FLAG_PURE, 0},
-    {"atan", atan,    TE_FUNCTION1 | TE_FLAG_PURE, 0},
-    {"atan2", atan2,  TE_FUNCTION2 | TE_FLAG_PURE, 0},
-    {"ceil", ceil,    TE_FUNCTION1 | TE_FLAG_PURE, 0},
-    {"cos", cos,      TE_FUNCTION1 | TE_FLAG_PURE, 0},
-    {"cosh", cosh,    TE_FUNCTION1 | TE_FLAG_PURE, 0},
-    {"e", e,          TE_FUNCTION0 | TE_FLAG_PURE, 0},
-    {"exp", exp,      TE_FUNCTION1 | TE_FLAG_PURE, 0},
-    {"fac", fac,      TE_FUNCTION1 | TE_FLAG_PURE, 0},
-    {"floor", floor,  TE_FUNCTION1 | TE_FLAG_PURE, 0},
-    {"ln", log,       TE_FUNCTION1 | TE_FLAG_PURE, 0},
+    {"abs", {.f1=fabs}, TE_FUNCTION1 | TE_FLAG_PURE, 0},
+    {"acos", {.f1=acos}, TE_FUNCTION1 | TE_FLAG_PURE, 0},
+    {"asin", {.f1=asin}, TE_FUNCTION1 | TE_FLAG_PURE, 0},
+    {"atan", {.f1=atan}, TE_FUNCTION1 | TE_FLAG_PURE, 0},
+    {"atan2", {.f2=atan2}, TE_FUNCTION2 | TE_FLAG_PURE, 0},
+    {"ceil", {.f1=ceil}, TE_FUNCTION1 | TE_FLAG_PURE, 0},
+    {"cos", {.f1=cos}, TE_FUNCTION1 | TE_FLAG_PURE, 0},
+    {"cosh", {.f1=cosh}, TE_FUNCTION1 | TE_FLAG_PURE, 0},
+    {"e", {.f0=e}, TE_FUNCTION0 | TE_FLAG_PURE, 0},
+    {"exp", {.f1=exp}, TE_FUNCTION1 | TE_FLAG_PURE, 0},
+    {"fac", {.f1=fac}, TE_FUNCTION1 | TE_FLAG_PURE, 0},
+    {"floor", {.f1=floor}, TE_FUNCTION1 | TE_FLAG_PURE, 0},
+    {"ln", {.f1=log}, TE_FUNCTION1 | TE_FLAG_PURE, 0},
 #ifdef TE_NAT_LOG
-    {"log", log,      TE_FUNCTION1 | TE_FLAG_PURE, 0},
+    {"log", {.f1=log}, TE_FUNCTION1 | TE_FLAG_PURE, 0},
 #else
-    {"log", log10,    TE_FUNCTION1 | TE_FLAG_PURE, 0},
+    {"log", {.f1=log10}, TE_FUNCTION1 | TE_FLAG_PURE, 0},
 #endif
-    {"log10", log10,  TE_FUNCTION1 | TE_FLAG_PURE, 0},
-    {"ncr", ncr,      TE_FUNCTION2 | TE_FLAG_PURE, 0},
-    {"npr", npr,      TE_FUNCTION2 | TE_FLAG_PURE, 0},
-    {"pi", pi,        TE_FUNCTION0 | TE_FLAG_PURE, 0},
-    {"pow", pow,      TE_FUNCTION2 | TE_FLAG_PURE, 0},
-    {"sin", sin,      TE_FUNCTION1 | TE_FLAG_PURE, 0},
-    {"sinh", sinh,    TE_FUNCTION1 | TE_FLAG_PURE, 0},
-    {"sqrt", sqrt,    TE_FUNCTION1 | TE_FLAG_PURE, 0},
-    {"tan", tan,      TE_FUNCTION1 | TE_FLAG_PURE, 0},
-    {"tanh", tanh,    TE_FUNCTION1 | TE_FLAG_PURE, 0},
-    {0, 0, 0, 0}
+    {"log10", {.f1=log10}, TE_FUNCTION1 | TE_FLAG_PURE, 0},
+    {"ncr", {.f2=ncr}, TE_FUNCTION2 | TE_FLAG_PURE, 0},
+    {"npr", {.f2=npr}, TE_FUNCTION2 | TE_FLAG_PURE, 0},
+    {"pi", {.f0=pi}, TE_FUNCTION0 | TE_FLAG_PURE, 0},
+    {"pow", {.f2=pow}, TE_FUNCTION2 | TE_FLAG_PURE, 0},
+    {"sin", {.f1=sin}, TE_FUNCTION1 | TE_FLAG_PURE, 0},
+    {"sinh", {.f1=sinh}, TE_FUNCTION1 | TE_FLAG_PURE, 0},
+    {"sqrt", {.f1=sqrt}, TE_FUNCTION1 | TE_FLAG_PURE, 0},
+    {"tan", {.f1=tan}, TE_FUNCTION1 | TE_FLAG_PURE, 0},
+    {"tanh", {.f1=tanh}, TE_FUNCTION1 | TE_FLAG_PURE, 0},
+    {0, {0}, 0, 0}
 };
 
 static const te_variable *find_builtin(const char *name, int len) {
@@ -257,7 +257,7 @@ void next_token(state *s) {
                     {
                         case TE_VARIABLE:
                             s->type = TOK_VARIABLE;
-                            s->v.bound = var->address;
+                            s->v.bound = var->address.any;
                             break;
 
                         case TE_CLOSURE0: case TE_CLOSURE1: case TE_CLOSURE2: case TE_CLOSURE3:         /* Falls through. */
@@ -267,7 +267,7 @@ void next_token(state *s) {
                         case TE_FUNCTION0: case TE_FUNCTION1: case TE_FUNCTION2: case TE_FUNCTION3:     /* Falls through. */
                         case TE_FUNCTION4: case TE_FUNCTION5: case TE_FUNCTION6: case TE_FUNCTION7:     /* Falls through. */
                             s->type = var->type;
-                            s->v.function = var->address;
+                            s->v.f.any = var->address.any;
                             break;
                     }
                 }
@@ -275,12 +275,12 @@ void next_token(state *s) {
             } else {
                 /* Look for an operator or special character. */
                 switch (s->next++[0]) {
-                    case '+': s->type = TOK_INFIX; s->v.function = add; break;
-                    case '-': s->type = TOK_INFIX; s->v.function = sub; break;
-                    case '*': s->type = TOK_INFIX; s->v.function = mul; break;
-                    case '/': s->type = TOK_INFIX; s->v.function = divide; break;
-                    case '^': s->type = TOK_INFIX; s->v.function = pow; break;
-                    case '%': s->type = TOK_INFIX; s->v.function = fmod; break;
+                    case '+': s->type = TOK_INFIX; s->v.f.f2 = add; break;
+                    case '-': s->type = TOK_INFIX; s->v.f.f2 = sub; break;
+                    case '*': s->type = TOK_INFIX; s->v.f.f2 = mul; break;
+                    case '/': s->type = TOK_INFIX; s->v.f.f2 = divide; break;
+                    case '^': s->type = TOK_INFIX; s->v.f.f2 = pow; break;
+                    case '%': s->type = TOK_INFIX; s->v.f.f2 = fmod; break;
                     case '(': s->type = TOK_OPEN; break;
                     case ')': s->type = TOK_CLOSE; break;
                     case ',': s->type = TOK_SEP; break;
@@ -318,7 +318,7 @@ static te_expr *base(state *s) {
         case TE_FUNCTION0:
         case TE_CLOSURE0:
             ret = new_expr(s->type, 0);
-            ret->v.function = s->v.function;
+            ret->v.f.any = s->v.f.any;
             if (IS_CLOSURE(s->type)) ret->parameters[0] = s->context;
             next_token(s);
             if (s->type == TOK_OPEN) {
@@ -334,7 +334,7 @@ static te_expr *base(state *s) {
         case TE_FUNCTION1:
         case TE_CLOSURE1:
             ret = new_expr(s->type, 0);
-            ret->v.function = s->v.function;
+            ret->v.f.any = s->v.f.any;
             if (IS_CLOSURE(s->type)) ret->parameters[1] = s->context;
             next_token(s);
             ret->parameters[0] = power(s);
@@ -347,7 +347,7 @@ static te_expr *base(state *s) {
             arity = ARITY(s->type);
 
             ret = new_expr(s->type, 0);
-            ret->v.function = s->v.function;
+            ret->v.f.any = s->v.f.any;
             if (IS_CLOSURE(s->type)) ret->parameters[arity] = s->context;
             next_token(s);
 
@@ -395,8 +395,8 @@ static te_expr *base(state *s) {
 static te_expr *power(state *s) {
     /* <power>     =    {("-" | "+")} <base> */
     int sign = 1;
-    while (s->type == TOK_INFIX && (s->v.function == add || s->v.function == sub)) {
-        if (s->v.function == sub) sign = -sign;
+    while (s->type == TOK_INFIX && (s->v.f.f2 == add || s->v.f.f2 == sub)) {
+        if (s->v.f.f2 == sub) sign = -sign;
         next_token(s);
     }
 
@@ -406,7 +406,7 @@ static te_expr *power(state *s) {
         ret = base(s);
     } else {
         ret = NEW_EXPR(TE_FUNCTION1 | TE_FLAG_PURE, base(s));
-        ret->v.function = negate;
+        ret->v.f.f1 = negate;
     }
 
     return ret;
@@ -420,33 +420,33 @@ static te_expr *factor(state *s) {
     int neg = 0;
     te_expr *insertion = 0;
 
-    if (ret->type == (TE_FUNCTION1 | TE_FLAG_PURE) && ret->v.function == negate) {
+    if (ret->type == (TE_FUNCTION1 | TE_FLAG_PURE) && ret->v.f.f1 == negate) {
         te_expr *se = ret->parameters[0];
         free(ret);
         ret = se;
         neg = 1;
     }
 
-    while (s->type == TOK_INFIX && (s->v.function == pow)) {
-        te_fun2 t = s->v.function;
+    while (s->type == TOK_INFIX && (s->v.f.f2 == pow)) {
+        te_fun2 t = s->v.f.f2;
         next_token(s);
 
         if (insertion) {
             /* Make exponentiation go right-to-left. */
             te_expr *insert = NEW_EXPR(TE_FUNCTION2 | TE_FLAG_PURE, insertion->parameters[1], power(s));
-            insert->v.function = t;
+            insert->v.f.f2 = t;
             insertion->parameters[1] = insert;
             insertion = insert;
         } else {
             ret = NEW_EXPR(TE_FUNCTION2 | TE_FLAG_PURE, ret, power(s));
-            ret->v.function = t;
+            ret->v.f.f2 = t;
             insertion = ret;
         }
     }
 
     if (neg) {
         ret = NEW_EXPR(TE_FUNCTION1 | TE_FLAG_PURE, ret);
-        ret->v.function = negate;
+        ret->v.f.f1 = negate;
     }
 
     return ret;
@@ -456,11 +456,11 @@ static te_expr *factor(state *s) {
     /* <factor>    =    <power> {"^" <power>} */
     te_expr *ret = power(s);
 
-    while (s->type == TOK_INFIX && (s->v.function == pow)) {
-        te_fun2 t = s->v.function;
+    while (s->type == TOK_INFIX && (s->v.f.f2 == pow)) {
+        te_fun2 t = s->v.f.f2;
         next_token(s);
         ret = NEW_EXPR(TE_FUNCTION2 | TE_FLAG_PURE, ret, power(s));
-        ret->v.function = t;
+        ret->v.f.f2 = t;
     }
 
     return ret;
@@ -473,11 +473,11 @@ static te_expr *term(state *s) {
     /* <term>      =    <factor> {("*" | "/" | "%") <factor>} */
     te_expr *ret = factor(s);
 
-    while (s->type == TOK_INFIX && (s->v.function == mul || s->v.function == divide || s->v.function == fmod)) {
-        te_fun2 t = s->v.function;
+    while (s->type == TOK_INFIX && (s->v.f.f2 == mul || s->v.f.f2 == divide || s->v.f.f2 == fmod)) {
+        te_fun2 t = s->v.f.f2;
         next_token(s);
         ret = NEW_EXPR(TE_FUNCTION2 | TE_FLAG_PURE, ret, factor(s));
-        ret->v.function = t;
+        ret->v.f.f2 = t;
     }
 
     return ret;
@@ -488,11 +488,11 @@ static te_expr *expr(state *s) {
     /* <expr>      =    <term> {("+" | "-") <term>} */
     te_expr *ret = term(s);
 
-    while (s->type == TOK_INFIX && (s->v.function == add || s->v.function == sub)) {
-        te_fun2 t = s->v.function;
+    while (s->type == TOK_INFIX && (s->v.f.f2 == add || s->v.f.f2 == sub)) {
+        te_fun2 t = s->v.f.f2;
         next_token(s);
         ret = NEW_EXPR(TE_FUNCTION2 | TE_FLAG_PURE, ret, term(s));
-        ret->v.function = t;
+        ret->v.f.f2 = t;
     }
 
     return ret;
@@ -506,14 +506,13 @@ static te_expr *list(state *s) {
     while (s->type == TOK_SEP) {
         next_token(s);
         ret = NEW_EXPR(TE_FUNCTION2 | TE_FLAG_PURE, ret, expr(s));
-        ret->v.function = comma;
+        ret->v.f.f2 = comma;
     }
 
     return ret;
 }
 
 
-#define TE_FUN(...) ((double(*)(__VA_ARGS__))n->v.function)
 #define M(e) te_eval(n->parameters[e])
 
 
@@ -527,28 +526,28 @@ double te_eval(const te_expr *n) {
         case TE_FUNCTION0: case TE_FUNCTION1: case TE_FUNCTION2: case TE_FUNCTION3:
         case TE_FUNCTION4: case TE_FUNCTION5: case TE_FUNCTION6: case TE_FUNCTION7:
             switch(ARITY(n->type)) {
-                case 0: return TE_FUN(void)();
-                case 1: return TE_FUN(double)(M(0));
-                case 2: return TE_FUN(double, double)(M(0), M(1));
-                case 3: return TE_FUN(double, double, double)(M(0), M(1), M(2));
-                case 4: return TE_FUN(double, double, double, double)(M(0), M(1), M(2), M(3));
-                case 5: return TE_FUN(double, double, double, double, double)(M(0), M(1), M(2), M(3), M(4));
-                case 6: return TE_FUN(double, double, double, double, double, double)(M(0), M(1), M(2), M(3), M(4), M(5));
-                case 7: return TE_FUN(double, double, double, double, double, double, double)(M(0), M(1), M(2), M(3), M(4), M(5), M(6));
+                case 0: return n->v.f.f0();
+                case 1: return n->v.f.f1(M(0));
+                case 2: return n->v.f.f2(M(0), M(1));
+                case 3: return n->v.f.f3(M(0), M(1), M(2));
+                case 4: return n->v.f.f4(M(0), M(1), M(2), M(3));
+                case 5: return n->v.f.f5(M(0), M(1), M(2), M(3), M(4));
+                case 6: return n->v.f.f6(M(0), M(1), M(2), M(3), M(4), M(5));
+                case 7: return n->v.f.f7(M(0), M(1), M(2), M(3), M(4), M(5), M(6));
                 default: return NAN;
             }
 
         case TE_CLOSURE0: case TE_CLOSURE1: case TE_CLOSURE2: case TE_CLOSURE3:
         case TE_CLOSURE4: case TE_CLOSURE5: case TE_CLOSURE6: case TE_CLOSURE7:
             switch(ARITY(n->type)) {
-                case 0: return TE_FUN(void*)(n->parameters[0]);
-                case 1: return TE_FUN(void*, double)(n->parameters[1], M(0));
-                case 2: return TE_FUN(void*, double, double)(n->parameters[2], M(0), M(1));
-                case 3: return TE_FUN(void*, double, double, double)(n->parameters[3], M(0), M(1), M(2));
-                case 4: return TE_FUN(void*, double, double, double, double)(n->parameters[4], M(0), M(1), M(2), M(3));
-                case 5: return TE_FUN(void*, double, double, double, double, double)(n->parameters[5], M(0), M(1), M(2), M(3), M(4));
-                case 6: return TE_FUN(void*, double, double, double, double, double, double)(n->parameters[6], M(0), M(1), M(2), M(3), M(4), M(5));
-                case 7: return TE_FUN(void*, double, double, double, double, double, double, double)(n->parameters[7], M(0), M(1), M(2), M(3), M(4), M(5), M(6));
+                case 0: return n->v.f.cl0(n->parameters[0]);
+                case 1: return n->v.f.cl1(n->parameters[1], M(0));
+                case 2: return n->v.f.cl2(n->parameters[2], M(0), M(1));
+                case 3: return n->v.f.cl3(n->parameters[3], M(0), M(1), M(2));
+                case 4: return n->v.f.cl4(n->parameters[4], M(0), M(1), M(2), M(3));
+                case 5: return n->v.f.cl5(n->parameters[5], M(0), M(1), M(2), M(3), M(4));
+                case 6: return n->v.f.cl6(n->parameters[6], M(0), M(1), M(2), M(3), M(4), M(5));
+                case 7: return n->v.f.cl7(n->parameters[7], M(0), M(1), M(2), M(3), M(4), M(5), M(6));
                 default: return NAN;
             }
 
@@ -557,7 +556,6 @@ double te_eval(const te_expr *n) {
 
 }
 
-#undef TE_FUN
 #undef M
 
 static void optimize(te_expr *n) {
@@ -628,7 +626,7 @@ static void pn (const te_expr *n, int depth) {
 
     switch(TYPE_MASK(n->type)) {
     case TE_CONSTANT: printf("%f\n", n->v.value); break;
-    case TE_VARIABLE: printf("bound %p\n", n->v.bound); break;
+    case TE_VARIABLE: printf("bound %p\n", (void*)n->v.bound); break;
 
     case TE_FUNCTION0: case TE_FUNCTION1: case TE_FUNCTION2: case TE_FUNCTION3:
     case TE_FUNCTION4: case TE_FUNCTION5: case TE_FUNCTION6: case TE_FUNCTION7:

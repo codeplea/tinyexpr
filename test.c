@@ -278,7 +278,7 @@ void test_infs() {
 void test_variables() {
 
     double x, y, test;
-    te_variable lookup[] = {{"x", &x}, {"y", &y}, {"te_st", &test}};
+    te_variable lookup[] = {{"x", {&x}}, {"y", {&y}}, {"te_st", {&test}}};
 
     int err;
 
@@ -354,7 +354,7 @@ void test_variables() {
 void test_functions() {
 
     double x, y;
-    te_variable lookup[] = {{"x", &x}, {"y", &y}};
+    te_variable lookup[] = {{"x", {&x}}, {"y", {&y}}};
 
     int err;
     te_expr *expr;
@@ -416,16 +416,16 @@ void test_dynamic() {
 
     double x, f;
     te_variable lookup[] = {
-        {"x", &x},
-        {"f", &f},
-        {"sum0", sum0, TE_FUNCTION0},
-        {"sum1", sum1, TE_FUNCTION1},
-        {"sum2", sum2, TE_FUNCTION2},
-        {"sum3", sum3, TE_FUNCTION3},
-        {"sum4", sum4, TE_FUNCTION4},
-        {"sum5", sum5, TE_FUNCTION5},
-        {"sum6", sum6, TE_FUNCTION6},
-        {"sum7", sum7, TE_FUNCTION7},
+        {"x", {&x}},
+        {"f", {&f}},
+        {"sum0", {.f0=sum0}, TE_FUNCTION0},
+        {"sum1", {.f1=sum1}, TE_FUNCTION1},
+        {"sum2", {.f2=sum2}, TE_FUNCTION2},
+        {"sum3", {.f3=sum3}, TE_FUNCTION3},
+        {"sum4", {.f4=sum4}, TE_FUNCTION4},
+        {"sum5", {.f5=sum5}, TE_FUNCTION5},
+        {"sum6", {.f6=sum6}, TE_FUNCTION6},
+        {"sum7", {.f7=sum7}, TE_FUNCTION7},
     };
 
     test_case cases[] = {
@@ -494,10 +494,10 @@ void test_closure() {
     double c[] = {5,6,7,8,9};
 
     te_variable lookup[] = {
-        {"c0", clo0, TE_CLOSURE0, &extra},
-        {"c1", clo1, TE_CLOSURE1, &extra},
-        {"c2", clo2, TE_CLOSURE2, &extra},
-        {"cell", cell, TE_CLOSURE1, c},
+      {"c0", {.cl0=clo0}, TE_CLOSURE0, &extra},
+      {"c1", {.cl1=clo1}, TE_CLOSURE1, &extra},
+      {"c2", {.cl2=clo2}, TE_CLOSURE2, &extra},
+      {"cell", {.cl1=cell}, TE_CLOSURE1, c},
     };
 
     test_case cases[] = {
@@ -601,8 +601,8 @@ void test_pow() {
     double a = 2, b = 3;
 
     te_variable lookup[] = {
-        {"a", &a},
-        {"b", &b}
+      {"a", {&a}},
+      {"b", {&b}}
     };
 
     int i;
