@@ -1,4 +1,4 @@
-CCFLAGS = -ansi -Wall -Wshadow -O2 -std=c89 #-pedantic
+CCFLAGS = -O2 -std=c99 -Wall -Wextra -Wshadow -Wcast-align -Wmissing-declarations -Wmissing-prototypes -Wconversion -Wno-long-long -pedantic
 LFLAGS = -lm
 
 .PHONY = all clean

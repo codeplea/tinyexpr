@@ -3,6 +3,7 @@
 
 int main(int argc, char *argv[])
 {
+    (void)argc; (void)argv;
     if (argc < 2) {
         printf("Usage: example2 \"expression\"\n");
         return 0;
@@ -14,7 +15,7 @@ int main(int argc, char *argv[])
     /* This shows an example where the variables
      * x and y are bound at eval-time. */
     double x, y;
-    te_variable vars[] = {{"x", {&x}}, {"y", {&y}}};
+    te_variable vars[] = {{"x", {&x}, TE_VARIABLE, NULL}, {"y", {&y}, TE_VARIABLE, NULL}};
 
     /* This will compile the expression and check for errors. */
     int err;

@@ -39,7 +39,7 @@ typedef struct {
 
 
 
-void test_results() {
+static void test_results() {
     test_case cases[] = {
         {"1", 1},
         {"1 ", 1},
@@ -147,7 +147,7 @@ void test_results() {
     };
 
 
-    int i;
+    size_t i;
     for (i = 0; i < sizeof(cases) / sizeof(test_case); ++i) {
         const char *expr = cases[i].expr;
         const double answer = cases[i].answer;
@@ -164,7 +164,7 @@ void test_results() {
 }
 
 
-void test_syntax() {
+static void test_syntax() {
     test_case errors[] = {
         {"", 1},
         {"1+", 2},
@@ -182,10 +182,10 @@ void test_syntax() {
     };
 
 
-    int i;
+    size_t i;
     for (i = 0; i < sizeof(errors) / sizeof(test_case); ++i) {
         const char *expr = errors[i].expr;
-        const int e = errors[i].answer;
+        const int e = (int)errors[i].answer;
 
         int err;
         const double r = te_interp(expr, &err);
@@ -206,7 +206,7 @@ void test_syntax() {
 }
 
 
-void test_nans() {
+static void test_nans() {
 
     const char *nans[] = {
         "0/0",
@@ -222,7 +222,7 @@ void test_nans() {
         "npr(2, -4)",
     };
 
-    int i;
+    size_t i;
     for (i = 0; i < sizeof(nans) / sizeof(const char *); ++i) {
         const char *expr = nans[i];
 
@@ -241,7 +241,7 @@ void test_nans() {
 }
 
 
-void test_infs() {
+static void test_infs() {
 
     const char *infs[] = {
             "1/0",
@@ -256,7 +256,7 @@ void test_infs() {
             "npr(30,25)",
     };
 
-    int i;
+    size_t i;
     for (i = 0; i < sizeof(infs) / sizeof(const char *); ++i) {
         const char *expr = infs[i];
 
@@ -275,10 +275,13 @@ void test_infs() {
 }
 
 
-void test_variables() {
+static void test_variables() {
 
     double x, y, test;
-    te_variable lookup[] = {{"x", {&x}}, {"y", {&y}}, {"te_st", {&test}}};
+    te_variable lookup[] =
+        {{"x", {&x}, TE_VARIABLE, NULL},
+         {"y", {&y}, TE_VARIABLE, NULL},
+         {"te_st", {&test}, TE_VARIABLE, NULL}};
 
     int err;
 
@@ -351,10 +354,11 @@ void test_variables() {
     te_free(expr);\
 }while(0)
 
-void test_functions() {
+static void test_functions() {
 
     double x, y;
-    te_variable lookup[] = {{"x", {&x}}, {"y", {&y}}};
+    te_variable lookup[] =
+        {{"x", {&x}, TE_VARIABLE, NULL}, {"y", {&y}, TE_VARIABLE, NULL}};
 
     int err;
     te_expr *expr;
@@ -386,46 +390,46 @@ void test_functions() {
 }
 
 
-double sum0() {
+static double sum0() {
     return 6;
 }
-double sum1(double a) {
+static double sum1(double a) {
     return a * 2;
 }
-double sum2(double a, double b) {
+static double sum2(double a, double b) {
     return a + b;
 }
-double sum3(double a, double b, double c) {
+static double sum3(double a, double b, double c) {
     return a + b + c;
 }
-double sum4(double a, double b, double c, double d) {
+static double sum4(double a, double b, double c, double d) {
     return a + b + c + d;
 }
-double sum5(double a, double b, double c, double d, double e) {
+static double sum5(double a, double b, double c, double d, double e) {
     return a + b + c + d + e;
 }
-double sum6(double a, double b, double c, double d, double e, double f) {
+static double sum6(double a, double b, double c, double d, double e, double f) {
     return a + b + c + d + e + f;
 }
-double sum7(double a, double b, double c, double d, double e, double f, double g) {
+static double sum7(double a, double b, double c, double d, double e, double f, double g) {
     return a + b + c + d + e + f + g;
 }
 
 
-void test_dynamic() {
+static void test_dynamic() {
 
     double x, f;
     te_variable lookup[] = {
-        {"x", {&x}},
-        {"f", {&f}},
-        {"sum0", {.f0=sum0}, TE_FUNCTION0},
-        {"sum1", {.f1=sum1}, TE_FUNCTION1},
-        {"sum2", {.f2=sum2}, TE_FUNCTION2},
-        {"sum3", {.f3=sum3}, TE_FUNCTION3},
-        {"sum4", {.f4=sum4}, TE_FUNCTION4},
-        {"sum5", {.f5=sum5}, TE_FUNCTION5},
-        {"sum6", {.f6=sum6}, TE_FUNCTION6},
-        {"sum7", {.f7=sum7}, TE_FUNCTION7},
+        {"x", {&x}, TE_VARIABLE, NULL},
+        {"f", {&f}, TE_VARIABLE, NULL},
+        {"sum0", {.f0=sum0}, TE_FUNCTION0, NULL},
+        {"sum1", {.f1=sum1}, TE_FUNCTION1, NULL},
+        {"sum2", {.f2=sum2}, TE_FUNCTION2, NULL},
+        {"sum3", {.f3=sum3}, TE_FUNCTION3, NULL},
+        {"sum4", {.f4=sum4}, TE_FUNCTION4, NULL},
+        {"sum5", {.f5=sum5}, TE_FUNCTION5, NULL},
+        {"sum6", {.f6=sum6}, TE_FUNCTION6, NULL},
+        {"sum7", {.f7=sum7}, TE_FUNCTION7, NULL},
     };
 
     test_case cases[] = {
@@ -456,7 +460,7 @@ void test_dynamic() {
     x = 2;
     f = 5;
 
-    int i;
+    size_t i;
     for (i = 0; i < sizeof(cases) / sizeof(test_case); ++i) {
         const char *expr = cases[i].expr;
         const double answer = cases[i].answer;
@@ -470,25 +474,25 @@ void test_dynamic() {
 }
 
 
-double clo0(void *context) {
+static double clo0(void *context) {
     if (context) return *((double*)context) + 6;
     return 6;
 }
-double clo1(void *context, double a) {
+static double clo1(void *context, double a) {
     if (context) return *((double*)context) + a * 2;
     return a * 2;
 }
-double clo2(void *context, double a, double b) {
+static double clo2(void *context, double a, double b) {
     if (context) return *((double*)context) + a + b;
     return a + b;
 }
 
-double cell(void *context, double a) {
+static double cell(void *context, double a) {
     double *c = context;
     return c[(int)a];
 }
 
-void test_closure() {
+static void test_closure() {
 
     double extra;
     double c[] = {5,6,7,8,9};
@@ -506,7 +510,7 @@ void test_closure() {
         {"c2 (10, 20)", 30},
     };
 
-    int i;
+    size_t i;
     for (i = 0; i < sizeof(cases) / sizeof(test_case); ++i) {
         const char *expr = cases[i].expr;
         const double answer = cases[i].answer;
@@ -544,7 +548,7 @@ void test_closure() {
     }
 }
 
-void test_optimize() {
+static void test_optimize() {
 
     test_case cases[] = {
         {"5+5", 10},
@@ -553,7 +557,7 @@ void test_optimize() {
         {"pi * 2", 6.2832},
     };
 
-    int i;
+    size_t i;
     for (i = 0; i < sizeof(cases) / sizeof(test_case); ++i) {
         const char *expr = cases[i].expr;
         const double answer = cases[i].answer;
@@ -571,7 +575,7 @@ void test_optimize() {
     }
 }
 
-void test_pow() {
+static void test_pow() {
 #ifdef TE_POW_FROM_RIGHT
     test_equ cases[] = {
         {"2^3^4", "2^(3^4)"},
@@ -601,11 +605,11 @@ void test_pow() {
     double a = 2, b = 3;
 
     te_variable lookup[] = {
-      {"a", {&a}},
-      {"b", {&b}}
+      {"a", {&a}, TE_VARIABLE, NULL},
+      {"b", {&b}, TE_VARIABLE, NULL}
     };
 
-    int i;
+    size_t i;
     for (i = 0; i < sizeof(cases) / sizeof(test_equ); ++i) {
         const char *expr1 = cases[i].expr1;
         const char *expr2 = cases[i].expr2;
@@ -628,7 +632,7 @@ void test_pow() {
 
 }
 
-void test_combinatorics() {
+static void test_combinatorics() {
     test_case cases[] = {
             {"fac(0)", 1},
             {"fac(0.2)", 1},
@@ -655,7 +659,7 @@ void test_combinatorics() {
     };
 
 
-    int i;
+    size_t i;
     for (i = 0; i < sizeof(cases) / sizeof(test_case); ++i) {
         const char *expr = cases[i].expr;
         const double answer = cases[i].answer;
@@ -674,6 +678,7 @@ void test_combinatorics() {
 
 int main(int argc, char *argv[])
 {
+    (void)argc; (void)argv;
     lrun("Results", test_results);
     lrun("Syntax", test_syntax);
     lrun("NaNs", test_nans);
