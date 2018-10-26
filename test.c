@@ -277,7 +277,7 @@ static void test_infs() {
 
 static void test_variables() {
 
-    double x, y, test;
+    static double x, y, test;
     te_variable lookup[] =
         {{"x", {&x}, TE_VARIABLE, NULL},
          {"y", {&y}, TE_VARIABLE, NULL},
@@ -356,7 +356,7 @@ static void test_variables() {
 
 static void test_functions() {
 
-    double x, y;
+    static double x, y;
     te_variable lookup[] =
         {{"x", {&x}, TE_VARIABLE, NULL}, {"y", {&y}, TE_VARIABLE, NULL}};
 
@@ -390,7 +390,7 @@ static void test_functions() {
 }
 
 
-static double sum0() {
+static double sum0(void) {
     return 6;
 }
 static double sum1(double a) {
@@ -418,7 +418,7 @@ static double sum7(double a, double b, double c, double d, double e, double f, d
 
 static void test_dynamic() {
 
-    double x, f;
+    static double x, f;
     te_variable lookup[] = {
         {"x", {&x}, TE_VARIABLE, NULL},
         {"f", {&f}, TE_VARIABLE, NULL},
@@ -494,8 +494,8 @@ static double cell(void *context, double a) {
 
 static void test_closure() {
 
-    double extra;
-    double c[] = {5,6,7,8,9};
+    static double extra;
+    static double c[] = {5,6,7,8,9};
 
     te_variable lookup[] = {
       {"c0", {.cl0=clo0}, TE_CLOSURE0, &extra},
@@ -602,7 +602,7 @@ static void test_pow() {
     };
 #endif
 
-    double a = 2, b = 3;
+    static double a = 2, b = 3;
 
     te_variable lookup[] = {
       {"a", {&a}, TE_VARIABLE, NULL},

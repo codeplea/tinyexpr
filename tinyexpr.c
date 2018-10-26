@@ -40,6 +40,7 @@ For log = natural log uncomment the next line. */
 #include <string.h>
 #include <stdio.h>
 #include <limits.h>
+#include <assert.h>
 
 #ifndef NAN
 #define NAN (0.0/0.0)
@@ -95,6 +96,26 @@ static te_expr *new_expr(const int type, const te_expr *parameters[]) {
     return ret;
 }
 
+static te_expr *new_expr1(const int type, te_expr *p1) {
+    const size_t size = sizeof(te_expr) + (IS_CLOSURE(type) ? sizeof(void*) : 0);
+	assert(p1 && ARITY(type) == 1);
+    te_expr *ret = malloc(size);
+    ret->type = type;
+    ret->v.bound = 0;
+	ret->parameters[0] = p1;
+    return ret;
+}
+
+static te_expr *new_expr2(const int type, te_expr *p1, te_expr *p2) {
+    const size_t size = sizeof(te_expr) + sizeof(void*) + (IS_CLOSURE(type) ? sizeof(void*) : 0);
+	assert(p1 && p2 && ARITY(type) == 2);
+    te_expr *ret = malloc(size);
+    ret->type = type;
+    ret->v.bound = 0;
+	ret->parameters[0] = p1;
+	ret->parameters[1] = p2;
+    return ret;
+}
 
 static void te_free_parameters(te_expr *n) {
     if (!n) return;
@@ -149,6 +170,10 @@ static double ncr(double n, double r) {
 }
 static double npr(double n, double r) {return ncr(n, r) * fac(r);}
 
+/* Workaround for a VC 2017 problem */
+static double ceil_(double x) { return ceil(x); }
+static double floor_(double x) { return floor(x); }
+
 static const te_variable functions[] = {
     /* must be in alphabetical order */
     {"abs", {.f1=fabs}, TE_FUNCTION1 | TE_FLAG_PURE, 0},
@@ -156,13 +181,13 @@ static const te_variable functions[] = {
     {"asin", {.f1=asin}, TE_FUNCTION1 | TE_FLAG_PURE, 0},
     {"atan", {.f1=atan}, TE_FUNCTION1 | TE_FLAG_PURE, 0},
     {"atan2", {.f2=atan2}, TE_FUNCTION2 | TE_FLAG_PURE, 0},
-    {"ceil", {.f1=ceil}, TE_FUNCTION1 | TE_FLAG_PURE, 0},
+    {"ceil", {.f1=ceil_}, TE_FUNCTION1 | TE_FLAG_PURE, 0},
     {"cos", {.f1=cos}, TE_FUNCTION1 | TE_FLAG_PURE, 0},
     {"cosh", {.f1=cosh}, TE_FUNCTION1 | TE_FLAG_PURE, 0},
     {"e", {.f0=e}, TE_FUNCTION0 | TE_FLAG_PURE, 0},
     {"exp", {.f1=exp}, TE_FUNCTION1 | TE_FLAG_PURE, 0},
     {"fac", {.f1=fac}, TE_FUNCTION1 | TE_FLAG_PURE, 0},
-    {"floor", {.f1=floor}, TE_FUNCTION1 | TE_FLAG_PURE, 0},
+    {"floor", {.f1=floor_}, TE_FUNCTION1 | TE_FLAG_PURE, 0},
     {"ln", {.f1=log}, TE_FUNCTION1 | TE_FLAG_PURE, 0},
 #ifdef TE_NAT_LOG
     {"log", {.f1=log}, TE_FUNCTION1 | TE_FLAG_PURE, 0},
@@ -405,7 +430,7 @@ static te_expr *power(state *s) {
     if (sign == 1) {
         ret = base(s);
     } else {
-        ret = NEW_EXPR(TE_FUNCTION1 | TE_FLAG_PURE, base(s));
+        ret = new_expr1(TE_FUNCTION1 | TE_FLAG_PURE, base(s));
         ret->v.f.f1 = negate;
     }
 
@@ -433,19 +458,19 @@ static te_expr *factor(state *s) {
 
         if (insertion) {
             /* Make exponentiation go right-to-left. */
-            te_expr *insert = NEW_EXPR(TE_FUNCTION2 | TE_FLAG_PURE, insertion->parameters[1], power(s));
+            te_expr *insert = new_expr2(TE_FUNCTION2 | TE_FLAG_PURE, insertion->parameters[1], power(s));
             insert->v.f.f2 = t;
             insertion->parameters[1] = insert;
             insertion = insert;
         } else {
-            ret = NEW_EXPR(TE_FUNCTION2 | TE_FLAG_PURE, ret, power(s));
+            ret = new_expr2(TE_FUNCTION2 | TE_FLAG_PURE, ret, power(s));
             ret->v.f.f2 = t;
             insertion = ret;
         }
     }
 
     if (neg) {
-        ret = NEW_EXPR(TE_FUNCTION1 | TE_FLAG_PURE, ret);
+        ret = new_expr1(TE_FUNCTION1 | TE_FLAG_PURE, ret);
         ret->v.f.f1 = negate;
     }
 
@@ -459,7 +484,7 @@ static te_expr *factor(state *s) {
     while (s->type == TOK_INFIX && (s->v.f.f2 == pow)) {
         te_fun2 t = s->v.f.f2;
         next_token(s);
-        ret = NEW_EXPR(TE_FUNCTION2 | TE_FLAG_PURE, ret, power(s));
+        ret = new_expr2(TE_FUNCTION2 | TE_FLAG_PURE, ret, power(s));
         ret->v.f.f2 = t;
     }
 
@@ -476,7 +501,7 @@ static te_expr *term(state *s) {
     while (s->type == TOK_INFIX && (s->v.f.f2 == mul || s->v.f.f2 == divide || s->v.f.f2 == fmod)) {
         te_fun2 t = s->v.f.f2;
         next_token(s);
-        ret = NEW_EXPR(TE_FUNCTION2 | TE_FLAG_PURE, ret, factor(s));
+        ret = new_expr2(TE_FUNCTION2 | TE_FLAG_PURE, ret, factor(s));
         ret->v.f.f2 = t;
     }
 
@@ -491,7 +516,7 @@ static te_expr *expr(state *s) {
     while (s->type == TOK_INFIX && (s->v.f.f2 == add || s->v.f.f2 == sub)) {
         te_fun2 t = s->v.f.f2;
         next_token(s);
-        ret = NEW_EXPR(TE_FUNCTION2 | TE_FLAG_PURE, ret, term(s));
+        ret = new_expr2(TE_FUNCTION2 | TE_FLAG_PURE, ret, term(s));
         ret->v.f.f2 = t;
     }
 
@@ -505,7 +530,7 @@ static te_expr *list(state *s) {
 
     while (s->type == TOK_SEP) {
         next_token(s);
-        ret = NEW_EXPR(TE_FUNCTION2 | TE_FLAG_PURE, ret, expr(s));
+        ret = new_expr2(TE_FUNCTION2 | TE_FLAG_PURE, ret, expr(s));
         ret->v.f.f2 = comma;
     }
 

@@ -38,7 +38,7 @@ typedef double (*function1)(double);
 static void bench(const char *expr, function1 func) {
     int i, j;
     volatile double d;
-    double tmp;
+    static double tmp;
     clock_t start;
 
     te_variable lk = {"a", {&tmp}, TE_VARIABLE, NULL};
