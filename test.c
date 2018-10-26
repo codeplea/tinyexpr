@@ -564,7 +564,7 @@ void test_optimize() {
 
         /* The answer should be know without
          * even running eval. */
-        lfequal(ex->value, answer);
+        lfequal(ex->v.value, answer);
         lfequal(te_eval(ex), answer);
 
         te_free(ex);

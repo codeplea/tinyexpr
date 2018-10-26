@@ -31,10 +31,15 @@ extern "C" {
 #endif
 
 
+union value {
+    double value;
+    const double *bound;
+    const void *function;
+};
 
 typedef struct te_expr {
     int type;
-    union {double value; const double *bound; const void *function;};
+    union value v;
     void *parameters[1];
 } te_expr;
 
