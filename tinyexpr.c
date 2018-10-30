@@ -98,22 +98,24 @@ static te_expr *new_expr(const int type, const te_expr *parameters[]) {
 
 static te_expr *new_expr1(const int type, te_expr *p1) {
     const size_t size = sizeof(te_expr) + (IS_CLOSURE(type) ? sizeof(void*) : 0);
-	assert(p1 && ARITY(type) == 1);
+    assert(p1 && ARITY(type) == 1);
     te_expr *ret = malloc(size);
     ret->type = type;
     ret->v.bound = 0;
-	ret->parameters[0] = p1;
+    ret->parameters[0] = p1;
+    if (IS_CLOSURE(type)) ret->parameters[1] = NULL;
     return ret;
 }
 
 static te_expr *new_expr2(const int type, te_expr *p1, te_expr *p2) {
     const size_t size = sizeof(te_expr) + sizeof(void*) + (IS_CLOSURE(type) ? sizeof(void*) : 0);
-	assert(p1 && p2 && ARITY(type) == 2);
+    assert(p1 && p2 && ARITY(type) == 2);
     te_expr *ret = malloc(size);
     ret->type = type;
     ret->v.bound = 0;
-	ret->parameters[0] = p1;
-	ret->parameters[1] = p2;
+    ret->parameters[0] = p1;
+    ret->parameters[1] = p2;
+    if (IS_CLOSURE(type)) ret->parameters[2] = NULL;
     return ret;
 }
 
