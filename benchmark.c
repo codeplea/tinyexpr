@@ -35,13 +35,13 @@
 
 typedef double (*function1)(double);
 
-void bench(const char *expr, function1 func) {
+static void bench(const char *expr, function1 func) {
     int i, j;
     volatile double d;
-    double tmp;
+    static double tmp;
     clock_t start;
 
-    te_variable lk = {"a", &tmp};
+    te_variable lk = {"a", {&tmp}, TE_VARIABLE, NULL};
 
     printf("Expression: %s\n", expr);
 
@@ -53,12 +53,12 @@ void bench(const char *expr, function1 func) {
             tmp = i;
             d += func(tmp);
         }
-    const int nelapsed = (clock() - start) * 1000 / CLOCKS_PER_SEC;
+    const long int nelapsed = (clock() - start) * 1000 / CLOCKS_PER_SEC;
 
     /*Million floats per second input.*/
     printf(" %.5g", d);
     if (nelapsed)
-        printf("\t%5dms\t%5dmfps\n", nelapsed, loops * loops / nelapsed / 1000);
+        printf("\t%5ldms\t%5ldmfps\n", nelapsed, loops * loops / nelapsed / 1000);
     else
         printf("\tinf\n");
 
@@ -74,47 +74,47 @@ void bench(const char *expr, function1 func) {
             tmp = i;
             d += te_eval(n);
         }
-    const int eelapsed = (clock() - start) * 1000 / CLOCKS_PER_SEC;
+    const long int eelapsed = (clock() - start) * 1000 / CLOCKS_PER_SEC;
     te_free(n);
 
     /*Million floats per second input.*/
     printf(" %.5g", d);
     if (eelapsed)
-        printf("\t%5dms\t%5dmfps\n", eelapsed, loops * loops / eelapsed / 1000);
+        printf("\t%5ldms\t%5ldmfps\n", eelapsed, loops * loops / eelapsed / 1000);
     else
         printf("\tinf\n");
 
 
-    printf("%.2f%% longer\n", (((double)eelapsed / nelapsed) - 1.0) * 100.0);
+    printf("%.2f%% longer\n", (((double)eelapsed / (double)nelapsed) - 1.0) * 100.0);
 
 
     printf("\n");
 }
 
 
-double a5(double a) {
+static double a5(double a) {
     return a+5;
 }
 
-double a52(double a) {
+static double a52(double a) {
     return (a+5)*2;
 }
 
-double a10(double a) {
+static double a10(double a) {
     return a+(5*2);
 }
 
-double as(double a) {
+static double as(double a) {
     return sqrt(pow(a, 1.5) + pow(a, 2.5));
 }
 
-double al(double a) {
+static double al(double a) {
     return (1/(a+1)+2/(a+2)+3/(a+3));
 }
 
 int main(int argc, char *argv[])
 {
-
+    (void)argc; (void)argv;
     bench("sqrt(a^1.5+a^2.5)", as);
     bench("a+5", a5);
     bench("a+(5*2)", a10);
