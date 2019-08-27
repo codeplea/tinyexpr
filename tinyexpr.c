@@ -428,7 +428,7 @@ static te_expr *factor(state *s) {
     }
 
     while (s->type == TOK_INFIX && (s->function == pow)) {
-        const void* t = s->function;
+        const te_fun2* t = (te_fun2*)s->function;
         next_token(s);
 
         if (insertion) {
@@ -457,7 +457,7 @@ static te_expr *factor(state *s) {
     te_expr *ret = power(s);
 
     while (s->type == TOK_INFIX && (s->function == pow)) {
-        const void* t = s->function;
+        const te_fun2* t = (te_fun2*)s->function;
         next_token(s);
         ret = NEW_EXPR(TE_FUNCTION2 | TE_FLAG_PURE, ret, power(s));
         ret->function = t;
@@ -474,7 +474,7 @@ static te_expr *term(state *s) {
     te_expr *ret = factor(s);
 
     while (s->type == TOK_INFIX && (s->function == mul || s->function == divide || s->function == fmod)) {
-        const void* t = s->function;
+        const te_fun2* t = (te_fun2*)s->function;
         next_token(s);
         ret = NEW_EXPR(TE_FUNCTION2 | TE_FLAG_PURE, ret, factor(s));
         ret->function = t;
@@ -489,7 +489,7 @@ static te_expr *expr(state *s) {
     te_expr *ret = term(s);
 
     while (s->type == TOK_INFIX && (s->function == add || s->function == sub)) {
-        const void* t = s->function;
+        const te_fun2* t = (te_fun2*)s->function;
         next_token(s);
         ret = NEW_EXPR(TE_FUNCTION2 | TE_FLAG_PURE, ret, term(s));
         ret->function = t;
