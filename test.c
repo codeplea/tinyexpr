@@ -185,7 +185,7 @@ void test_syntax() {
     int i;
     for (i = 0; i < sizeof(errors) / sizeof(test_case); ++i) {
         const char *expr = errors[i].expr;
-        const int e = errors[i].answer;
+        const int e = (int)errors[i].answer;
 
         int err;
         const double r = te_interp(expr, &err);
@@ -484,7 +484,7 @@ double clo2(void *context, double a, double b) {
 }
 
 double cell(void *context, double a) {
-    double *c = context;
+    double *c = (double*)context;
     return c[(int)a];
 }
 
