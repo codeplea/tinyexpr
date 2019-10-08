@@ -90,13 +90,13 @@ typedef struct state {
 #if defined(TINYEXPR_USE_STATIC_MEMORY) && defined(TINYEXPR_UNIT_TEST)
 void te_expr_clean_up(void)
 {
-    // Clear static memory array
+    /* Clear static memory array. */
     memset(te_expr_array, 0, sizeof(te_expr)*TINYEXPR_MAX_EXPRESSIONS);
-    // Clear allocation indication array
+    /* Clear allocation indication array. */
     for (int i = 0; i < TINYEXPR_MAX_EXPRESSIONS; i++) {
         te_expr_isAllocated[i] = false;
     }
-    // Clear counters
+    /* Clear counters. */
     te_expr_count = 0;
     te_expr_count_max = 0;
     te_expr_free_error_count = 0;
@@ -816,7 +816,7 @@ te_expr *te_compile(const char *expression, const te_variable *variables, int va
             return root;
         }
     } else {
-        // Failed due to memory allocation
+        /* Failed due to memory allocation. */
         if (error) {
             *error = 1;
         }
