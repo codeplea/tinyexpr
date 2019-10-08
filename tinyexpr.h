@@ -30,12 +30,22 @@
 extern "C" {
 #endif
 
+#if defined(TINYEXPR_USE_STATIC_MEMORY)
+    #if !defined(TINYEXPR_MAX_EXPRESSIONS)
+        #define TINYEXPR_MAX_EXPRESSIONS    64
+    #endif
 
+    #define TINYEXPR_MAX_PARAMETERS         8
+#endif
 
 typedef struct te_expr {
     int type;
     union {double value; const double *bound; const void *function;};
+#if defined(TINYEXPR_USE_STATIC_MEMORY)
+    void *parameters[TINYEXPR_MAX_PARAMETERS];
+#else
     void *parameters[1];
+#endif
 } te_expr;
 
 
@@ -59,6 +69,13 @@ typedef struct te_variable {
 } te_variable;
 
 
+/* Static memory unit test supporting functions. */
+#if defined(TINYEXPR_USE_STATIC_MEMORY) && defined(TINYEXPR_UNIT_TEST)
+/* Cleans internal static memory and supporting variables. */
+void te_expr_clean_up(void);
+/* Returns memory usage for static memory test. */
+void te_expr_memory_usage(unsigned int *count, unsigned int *count_max, unsigned int *free_error_count);
+#endif
 
 /* Parses the input expression, evaluates it, and frees it. */
 /* Returns NaN on error. */
