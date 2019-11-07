@@ -148,6 +148,8 @@ static double ncr(double n, double r) {
     return result;
 }
 static double npr(double n, double r) {return ncr(n, r) * fac(r);}
+double min(double c, double d) {return (c < d) ? c : d;}
+double max(double c, double d) {return (c > d) ? c : d;}
 
 static const te_variable functions[] = {
     /* must be in alphabetical order */
