@@ -1,16 +1,17 @@
+CC = gcc
 CCFLAGS = -ansi -Wall -Wshadow -O2
 LFLAGS = -lm
 
 .PHONY = all clean
 
-all: test test_pr bench example example2 example3
+all: smoke smoke_pr bench example example2 example3
 
 
-test: test.c tinyexpr.c
+smoke: smoke.c tinyexpr.c
 	$(CC) $(CCFLAGS) -o $@ $^ $(LFLAGS)
 	./$@
 
-test_pr: test.c tinyexpr.c
+smoke_pr: smoke.c tinyexpr.c
 	$(CC) $(CCFLAGS) -DTE_POW_FROM_RIGHT -DTE_NAT_LOG -o $@ $^ $(LFLAGS)
 	./$@
 
@@ -30,4 +31,4 @@ example3: example3.o tinyexpr.o
 	$(CC) -c $(CCFLAGS) $< -o $@
 
 clean:
-	rm -f *.o *.exe example example2 example3 bench test_pr test
+	rm -f *.o *.exe example example2 example3 bench smoke_pr smoke

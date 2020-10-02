@@ -1,7 +1,7 @@
 /*
  * TINYEXPR - Tiny recursive descent parser and evaluation engine in C
  *
- * Copyright (c) 2015-2018 Lewis Van Winkle
+ * Copyright (c) 2015-2020 Lewis Van Winkle
  *
  * http://CodePlea.com
  *
@@ -418,7 +418,6 @@ static te_expr *factor(state *s) {
     te_expr *ret = power(s);
 
     int neg = 0;
-    te_expr *insertion = 0;
 
     if (ret->type == (TE_FUNCTION1 | TE_FLAG_PURE) && ret->function == negate) {
         te_expr *se = ret->parameters[0];
@@ -426,6 +425,8 @@ static te_expr *factor(state *s) {
         ret = se;
         neg = 1;
     }
+
+    te_expr *insertion = 0;
 
     while (s->type == TOK_INFIX && (s->function == pow)) {
         te_fun2 t = s->function;

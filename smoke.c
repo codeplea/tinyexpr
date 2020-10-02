@@ -1,7 +1,7 @@
 /*
  * TINYEXPR - Tiny recursive descent parser and evaluation engine in C
  *
- * Copyright (c) 2015, 2016 Lewis Van Winkle
+ * Copyright (c) 2015-2020 Lewis Van Winkle
  *
  * http://CodePlea.com
  *
@@ -578,23 +578,36 @@ void test_pow() {
         {"-2^2", "-(2^2)"},
         {"--2^2", "(2^2)"},
         {"---2^2", "-(2^2)"},
-        {"-(2)^2", "-(2^2)"},
         {"-(2*1)^2", "-(2^2)"},
         {"-2^2", "-4"},
         {"2^1.1^1.2^1.3", "2^(1.1^(1.2^1.3))"},
         {"-a^b", "-(a^b)"},
-        {"-a^-b", "-(a^-b)"}
+        {"-a^-b", "-(a^-b)"},
+        {"1^0", "1"},
+        {"(1)^0", "1"},
+        {"-(2)^2", "-(2^2)"}
+        /* TODO POW FROM RIGHT IS STILL BUGGY
+        {"(-2)^2", "4"},
+        {"(-1)^0", "1"},
+        {"(-5)^0", "1"},
+        {"-2^-3^-4", "-(2^(-(3^-4)))"}*/
     };
 #else
     test_equ cases[] = {
         {"2^3^4", "(2^3)^4"},
         {"-2^2", "(-2)^2"},
+        {"(-2)^2", "4"},
         {"--2^2", "2^2"},
         {"---2^2", "(-2)^2"},
         {"-2^2", "4"},
         {"2^1.1^1.2^1.3", "((2^1.1)^1.2)^1.3"},
         {"-a^b", "(-a)^b"},
-        {"-a^-b", "(-a)^(-b)"}
+        {"-a^-b", "(-a)^(-b)"},
+        {"1^0", "1"},
+        {"(1)^0", "1"},
+        {"(-1)^0", "1"},
+        {"(-5)^0", "1"},
+        {"-2^-3^-4", "((-2)^(-3))^(-4)"}
     };
 #endif
 
@@ -620,7 +633,11 @@ void test_pow() {
         double r2 = te_eval(ex2);
 
         fflush(stdout);
+        const int olfail = lfails;
         lfequal(r1, r2);
+        if (olfail != lfails) {
+            printf("Failed expression: %s <> %s\n", expr1, expr2);
+        }
 
         te_free(ex1);
         te_free(ex2);
