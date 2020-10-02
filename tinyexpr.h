@@ -22,8 +22,8 @@
  * 3. This notice may not be removed or altered from any source distribution.
  */
 
-#ifndef __TINYEXPR_H__
-#define __TINYEXPR_H__
+#ifndef TINYEXPR_H
+#define TINYEXPR_H
 
 
 #ifdef __cplusplus
