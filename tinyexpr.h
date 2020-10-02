@@ -83,4 +83,4 @@ void te_free(te_expr *n);
 }
 #endif
 
-#endif /*__TINYEXPR_H__*/
+#endif /*TINYEXPR_H*/
