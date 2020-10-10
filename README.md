@@ -85,7 +85,7 @@ be evaluated later using `te_eval()`. On failure, `te_compile()` will return 0
 and optionally set the passed in `*error` to the location of the parse error.
 
 You may also compile expressions without variables by passing `te_compile()`'s second
-and thrid arguments as 0.
+and third arguments as 0.
 
 Give `te_eval()` a `te_expr*` from `te_compile()`. `te_eval()` will evaluate the expression
 using the current variable values.
