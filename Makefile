@@ -16,6 +16,9 @@ smoke_pr: smoke.c tinyexpr.c
 	./$@
 
 repl: repl.o tinyexpr.o
+	$(CC) $(CCFLAGS) -o $@ $^ $(LFLAGS)
+
+repl-readline: repl-readline.o tinyexpr.o
 	$(CC) $(CCFLAGS) -o $@ $^ $(LFLAGS) -lreadline
 
 bench: benchmark.o tinyexpr.o
@@ -29,6 +32,9 @@ example2: example2.o tinyexpr.o
 
 example3: example3.o tinyexpr.o
 	$(CC) $(CCFLAGS) -o $@ $^ $(LFLAGS)
+
+repl-readline.o: repl.c
+	$(CC) -c -DUSE_READLINE $(CCFLAGS) $< -o $@
 
 .c.o:
 	$(CC) -c $(CCFLAGS) $< -o $@
