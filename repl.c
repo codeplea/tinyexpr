@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#ifndef NO_READLINE
+#ifdef USE_READLINE
 #include <readline/readline.h>
 #include <readline/history.h>
 #else
