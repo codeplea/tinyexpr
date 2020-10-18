@@ -29,13 +29,16 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+/* Private */
+typedef double (*te_fun0)(void);
+typedef double (*te_fun1)(double);
+typedef double (*te_fun2)(double, double);
 
-
-
+/* Public */
 typedef struct te_expr {
     int type;
-    union {double value; const double *bound; const void *function;};
-    void *parameters[1];
+    union {double value; const double *bound; te_fun0 fn0; te_fun1 fn1; te_fun2 fn2;};
+    struct te_expr *parameters[1];
 } te_expr;
 
 
@@ -53,9 +56,9 @@ enum {
 
 typedef struct te_variable {
     const char *name;
-    const void *address;
+    union {const double *address; te_fun0 fn0; te_fun1 fn1; te_fun2 fn2;};
     int type;
-    void *context;
+    te_expr *context;
 } te_variable;
 
 
