@@ -315,7 +315,7 @@ static te_expr *base(state *s) {
         case TE_FUNCTION0:
         case TE_CLOSURE0:
             ret = new_expr(s->type, 0);
-            ret->fn1 = s->fn1;
+            ret->fn0 = s->fn0;
             if (IS_CLOSURE(s->type)) ret->parameters[0] = s->context;
             next_token(s);
             if (s->type == TOK_OPEN) {
@@ -344,7 +344,7 @@ static te_expr *base(state *s) {
             arity = ARITY(s->type);
 
             ret = new_expr(s->type, 0);
-            ret->fn1 = s->fn1;
+            ret->fn2 = s->fn2;
             if (IS_CLOSURE(s->type)) ret->parameters[arity] = s->context;
             next_token(s);
 
@@ -424,8 +424,8 @@ static te_expr *factor(state *s) {
     }
 
     te_expr *insertion = 0;
-
-    while (s->type == TOK_INFIX && (s->fn2 == pow)) {
+    te_fun2 dpow = pow; /* resolve overloading for g++ */
+    while (s->type == TOK_INFIX && (s->fn2 == dpow)) {
         te_fun2 t = s->fn2;
         next_token(s);
 
