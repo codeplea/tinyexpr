@@ -14,7 +14,7 @@ the standard C math functions and runtime binding of variables.
 
 ## Features
 
-- **ANSI C with no dependencies**.
+- **C99 with no dependencies**.
 - Single source file and header file.
 - Simple and fast.
 - Implements standard operators precedence.
