@@ -516,14 +516,15 @@ static te_expr *list(state *s) {
 }
 
 #define TE_R0(x)
-#define TE_R1(x) ,x
-#define TE_R2(x) TE_R1(x) ,x
-#define TE_R3(x) TE_R2(x) ,x
-#define TE_R4(x) TE_R3(x) ,x
-#define TE_R5(x) TE_R4(x) ,x
-#define TE_R6(x) TE_R5(x) ,x
-#define TE_R7(x) TE_R6(x) ,x
-#define TE_FUN(T0, N) ((double(*)(T0 TE_R##N(double)))n->fn1)
+#define TE_R1(x) x(1)
+#define TE_R2(x) TE_R1(x) ,x(2)
+#define TE_R3(x) TE_R2(x) ,x(3)
+#define TE_R4(x) TE_R3(x) ,x(4)
+#define TE_R5(x) TE_R4(x) ,x(5)
+#define TE_R6(x) TE_R5(x) ,x(6)
+#define TE_R7(x) TE_R6(x) ,x(7)
+#define TE_FUN(T0, N) ((double(*)(T0, TE_R##N(D)))n->fn1)
+#define D(e) double
 #define M(e) te_eval(n->parameters[e])
 
 double te_eval(const te_expr *n) {
@@ -539,25 +540,25 @@ double te_eval(const te_expr *n) {
                 case 0: return n->fn0();
                 case 1: return n->fn1(M(0));
                 case 2: return n->fn2(M(0), M(1));
-                case 3: return TE_FUN(double, 2)(M(0), M(1), M(2));
-                case 4: return TE_FUN(double, 3)(M(0), M(1), M(2), M(3));
-                case 5: return TE_FUN(double, 4)(M(0), M(1), M(2), M(3), M(4));
-                case 6: return TE_FUN(double, 5)(M(0), M(1), M(2), M(3), M(4), M(5));
-                case 7: return TE_FUN(double, 6)(M(0), M(1), M(2), M(3), M(4), M(5), M(6));
+                case 3: return TE_FUN(double, 2)(M(0), TE_R2(M));
+                case 4: return TE_FUN(double, 3)(M(0), TE_R3(M));
+                case 5: return TE_FUN(double, 4)(M(0), TE_R4(M));
+                case 6: return TE_FUN(double, 5)(M(0), TE_R5(M));
+                case 7: return TE_FUN(double, 6)(M(0), TE_R6(M));
                 default: return NAN;
             }
 
         case TE_CLOSURE0: case TE_CLOSURE1: case TE_CLOSURE2: case TE_CLOSURE3:
         case TE_CLOSURE4: case TE_CLOSURE5: case TE_CLOSURE6: case TE_CLOSURE7:
             switch(ARITY(n->type)) {
-                case 0: return TE_FUN(te_expr*, 0)(n->parameters[0]);
+                case 0: return ((double(*)(te_expr*))n->fn1)(n->parameters[0]);
                 case 1: return TE_FUN(te_expr*, 1)(n->parameters[1], M(0));
-                case 2: return TE_FUN(te_expr*, 2)(n->parameters[2], M(0), M(1));
-                case 3: return TE_FUN(te_expr*, 3)(n->parameters[3], M(0), M(1), M(2));
-                case 4: return TE_FUN(te_expr*, 4)(n->parameters[4], M(0), M(1), M(2), M(3));
-                case 5: return TE_FUN(te_expr*, 5)(n->parameters[5], M(0), M(1), M(2), M(3), M(4));
-                case 6: return TE_FUN(te_expr*, 6)(n->parameters[6], M(0), M(1), M(2), M(3), M(4), M(5));
-                case 7: return TE_FUN(te_expr*, 7)(n->parameters[7], M(0), M(1), M(2), M(3), M(4), M(5), M(6));
+                case 2: return TE_FUN(te_expr*, 2)(n->parameters[2], TE_R2(M));
+                case 3: return TE_FUN(te_expr*, 3)(n->parameters[3], TE_R3(M));
+                case 4: return TE_FUN(te_expr*, 4)(n->parameters[4], TE_R4(M));
+                case 5: return TE_FUN(te_expr*, 5)(n->parameters[5], TE_R5(M));
+                case 6: return TE_FUN(te_expr*, 6)(n->parameters[6], TE_R6(M));
+                case 7: return TE_FUN(te_expr*, 7)(n->parameters[7], TE_R7(M));
                 default: return NAN;
             }
 
@@ -566,7 +567,7 @@ double te_eval(const te_expr *n) {
 
 }
 
-#undef TE_FUN
+#undef D
 #undef M
 
 static void optimize(te_expr *n) {
