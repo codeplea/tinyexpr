@@ -37,7 +37,7 @@ typedef double (*te_fun2)(double, double);
 /* Public */
 typedef struct te_expr {
     int type;
-    union {double value; const double *bound; te_fun0 fn0; te_fun1 fn1; te_fun2 fn2;};
+    union {double value; const double *bound; te_fun0 fun0; te_fun1 fun1; te_fun2 fun2;};
     struct te_expr *parameters[1];
 } te_expr;
 
@@ -56,7 +56,7 @@ enum {
 
 typedef struct te_variable {
     const char *name;
-    union {const double *address; te_fun0 fn0; te_fun1 fn1; te_fun2 fn2;};
+    union {const double *address; te_fun0 fun0; te_fun1 fun1; te_fun2 fun2;};
     int type;
     te_expr *context;
 } te_variable;
