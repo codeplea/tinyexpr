@@ -22,17 +22,9 @@
  * 3. This notice may not be removed or altered from any source distribution.
  */
 
-/* COMPILE TIME OPTIONS */
-
 /* Exponentiation associativity:
-For a^b^c = (a^b)^c and -a^b = (-a)^b do nothing.
-For a^b^c = a^(b^c) and -a^b = -(a^b) uncomment the next line.*/
-/* #define TE_POW_FROM_RIGHT */
-
-/* Logarithms
-For log = base 10 log do nothing
-For log = natural log uncomment the next line. */
-/* #define TE_NAT_LOG */
+   a**b**c = a**(b**c) and -a**b = -(a**b)
+*/
 
 #include "tinyexpr.h"
 #include <stdlib.h>
@@ -122,9 +114,12 @@ void te_free(te_expr *n) {
 
 static double pi(void) {return 3.14159265358979323846;}
 static double e(void) {return 2.71828182845904523536;}
-static double fac(double a) {return tgamma(a + 1);}
 
-static double ncr(double n, double r) {
+static double fac(double a) {
+    return tgamma(a + 1);
+}
+
+static double ncr(double n, double r) { // combinations
     if (n < 0.0 || r < 0.0 || n < r) return NAN;
     if (n > UINT_MAX || r > UINT_MAX) return INFINITY;
     unsigned long int un = (unsigned int)(n), ur = (unsigned int)(r), i;
@@ -138,7 +133,23 @@ static double ncr(double n, double r) {
     }
     return result;
 }
-static double npr(double n, double r) {return ncr(n, r) * fac(r);}
+
+static double npr(double n, double r) { // permutations
+    return ncr(n, r) * fac(r);
+}
+
+typedef unsigned long long te_ull;
+
+static double gcd(double x, double y) {
+    unsigned long long a = (unsigned int)(x), b = (unsigned int)(y), r;
+    while (b > 0) {
+        r = a % b;
+        a = b;
+        b = r;
+    }
+    return (double) a;
+}
+
 
 static const te_variable functions[] = {
     /* must be in alphabetical order */
@@ -147,20 +158,19 @@ static const te_variable functions[] = {
     {.name="asin",  .fun1=asin,  .type=TE_FUNCTION1 | TE_FLAG_PURE, .context=0},
     {.name="atan",  .fun1=atan,  .type=TE_FUNCTION1 | TE_FLAG_PURE, .context=0},
     {.name="atan2", .fun2=atan2, .type=TE_FUNCTION2 | TE_FLAG_PURE, .context=0},
+    {.name="cbrt",  .fun1=cbrt,  .type=TE_FUNCTION1 | TE_FLAG_PURE, .context=0},
     {.name="ceil",  .fun1=ceil,  .type=TE_FUNCTION1 | TE_FLAG_PURE, .context=0},
     {.name="cos",   .fun1=cos,   .type=TE_FUNCTION1 | TE_FLAG_PURE, .context=0},
     {.name="cosh",  .fun1=cosh,  .type=TE_FUNCTION1 | TE_FLAG_PURE, .context=0},
     {.name="e",     .fun0=e,     .type=TE_FUNCTION0 | TE_FLAG_PURE, .context=0},
     {.name="exp",   .fun1=exp,   .type=TE_FUNCTION1 | TE_FLAG_PURE, .context=0},
-    {.name="fac",   .fun1=fac,   .type=TE_FUNCTION1 | TE_FLAG_PURE, .context=0},
+    {.name="fac", .  fun1=fac,   .type=TE_FUNCTION1 | TE_FLAG_PURE, .context=0},
     {.name="floor", .fun1=floor, .type=TE_FUNCTION1 | TE_FLAG_PURE, .context=0},
-    {.name="ln",    .fun1=log,   .type=TE_FUNCTION1 | TE_FLAG_PURE, .context=0},
-#ifdef TE_NAT_LOG
+    {.name="gamma", .fun1=tgamma,.type=TE_FUNCTION1 | TE_FLAG_PURE, .context=0},
+    {.name="gcd",   .fun2=gcd,   .type=TE_FUNCTION2 | TE_FLAG_PURE, .context=0},
     {.name="log",   .fun1=log,   .type=TE_FUNCTION1 | TE_FLAG_PURE, .context=0},
-#else
-    {.name="log",   .fun1=log10, .type=TE_FUNCTION1 | TE_FLAG_PURE, .context=0},
-#endif
     {.name="log10", .fun1=log10, .type=TE_FUNCTION1 | TE_FLAG_PURE, .context=0},
+    {.name="log2",  .fun1=log2,  .type=TE_FUNCTION1 | TE_FLAG_PURE, .context=0},
     {.name="ncr",   .fun2=ncr,   .type=TE_FUNCTION2 | TE_FLAG_PURE, .context=0},
     {.name="npr",   .fun2=npr,   .type=TE_FUNCTION2 | TE_FLAG_PURE, .context=0},
     {.name="pi",    .fun0=pi,    .type=TE_FUNCTION0 | TE_FLAG_PURE, .context=0},
@@ -268,9 +278,11 @@ void next_token(state *s) {
                 switch (s->next++[0]) {
                     case '+': s->type = TOK_INFIX; s->fun2 = add; break;
                     case '-': s->type = TOK_INFIX; s->fun2 = sub; break;
-                    case '*': s->type = TOK_INFIX; s->fun2 = mul; break;
+                    case '*':
+                        if (*s->next=='*') {++s->next; s->fun2 = pow;}
+                        else s->fun2 = mul;
+                        s->type = TOK_INFIX; break;
                     case '/': s->type = TOK_INFIX; s->fun2 = divide; break;
-                    case '^': s->type = TOK_INFIX; s->fun2 = pow; break;
                     case '%': s->type = TOK_INFIX; s->fun2 = fmod; break;
                     case '(': s->type = TOK_OPEN; break;
                     case ')': s->type = TOK_CLOSE; break;
@@ -403,9 +415,8 @@ static te_expr *power(state *s) {
     return ret;
 }
 
-#ifdef TE_POW_FROM_RIGHT
 static te_expr *factor(state *s) {
-    /* <factor>    =    <power> {"^" <power>} */
+    /* <factor>    =    <power> {"**" <power>} */
     te_expr *ret = power(s);
 
     int neg = 0;
@@ -443,23 +454,6 @@ static te_expr *factor(state *s) {
 
     return ret;
 }
-#else
-static te_expr *factor(state *s) {
-    /* <factor>    =    <power> {"^" <power>} */
-    te_expr *ret = power(s);
-    te_fun2 dpow = pow; /* resolve c++ overloading */
-    while (s->type == TOK_INFIX && (s->fun2 == dpow)) {
-        te_fun2 t = s->fun2;
-        next_token(s);
-        ret = NEW_EXPR(TE_FUNCTION2 | TE_FLAG_PURE, ret, power(s));
-        ret->fun2 = t;
-    }
-
-    return ret;
-}
-#endif
-
-
 
 static te_expr *term(state *s) {
     /* <term>      =    <factor> {("*" | "/" | "%") <factor>} */
