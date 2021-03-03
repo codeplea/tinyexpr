@@ -255,11 +255,10 @@ TinyExpr parses the following grammar:
 
 In addition, whitespace between tokens is ignored.
 
-Valid variable names consist of a lower case letter followed by any combination
-of: lower case letters *a* through *z*, the digits *0* through *9*, and
-underscore. Constants can be integers, decimal numbers, or in scientific
-notation (e.g.  *1e3* for *1000*). A leading zero is not required (e.g. *.5*
-for *0.5*)
+Valid variable names consist of a letter followed by any combination of:
+letters, the digits *0* through *9*, and underscore. Constants can be integers,
+decimal numbers, or in scientific notation (e.g.  *1e3* for *1000*). A leading
+zero is not required (e.g. *.5* for *0.5*)
 
 
 ## Functions supported
