@@ -19,6 +19,10 @@ static char *readline(const char *prompt) {
     }
 
     size_t len = strlen(line);
+
+    if (len < 1)
+        return NULL;
+
     if (line[len - 1] == '\n') {
         line[len - 1] = '\0';
         len -= 1;
