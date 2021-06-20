@@ -12,7 +12,7 @@ double my_sum(double a, double b) {
 int main(int argc, char *argv[])
 {
     te_variable vars[] = {
-        {"mysum", my_sum, TE_FUNCTION2}
+        {.name="mysum", .fun2=my_sum, .type=TE_FUNCTION2}
     };
 
     const char *expression = "mysum(5, 6)";
