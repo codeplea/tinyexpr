@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/codeplea/tinyexpr.svg?branch=master)](https://travis-ci.org/codeplea/tinyexpr)
+[![Build Status](https://travis-ci.com/codeplea/tinyexpr.svg?branch=master)](https://travis-ci.com/codeplea/tinyexpr)
 
 
 <img alt="TinyExpr logo" src="https://codeplea.com/public/content/tinyexpr_logo.png" align="right"/>
@@ -14,7 +14,7 @@ the standard C math functions and runtime binding of variables.
 
 ## Features
 
-- **ANSI C with no dependencies**.
+- **C99 with no dependencies**.
 - Single source file and header file.
 - Simple and fast.
 - Implements standard operators precedence.
@@ -85,7 +85,7 @@ be evaluated later using `te_eval()`. On failure, `te_compile()` will return 0
 and optionally set the passed in `*error` to the location of the parse error.
 
 You may also compile expressions without variables by passing `te_compile()`'s second
-and thrid arguments as 0.
+and third arguments as 0.
 
 Give `te_eval()` a `te_expr*` from `te_compile()`. `te_eval()` will evaluate the expression
 using the current variable values.
@@ -255,11 +255,10 @@ TinyExpr parses the following grammar:
 
 In addition, whitespace between tokens is ignored.
 
-Valid variable names consist of a lower case letter followed by any combination
-of: lower case letters *a* through *z*, the digits *0* through *9*, and
-underscore. Constants can be integers, decimal numbers, or in scientific
-notation (e.g.  *1e3* for *1000*). A leading zero is not required (e.g. *.5*
-for *0.5*)
+Valid variable names consist of a letter followed by any combination of:
+letters, the digits *0* through *9*, and underscore. Constants can be integers,
+decimal numbers, or in scientific notation (e.g.  *1e3* for *1000*). A leading
+zero is not required (e.g. *.5* for *0.5*)
 
 
 ## Functions supported
