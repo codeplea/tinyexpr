@@ -40,4 +40,4 @@ repl-readline.o: repl.c
 	$(CC) -c $(CCFLAGS) $< -o $@
 
 clean:
-	rm -f *.o *.exe example example2 example3 bench repl smoke_pr smoke
+	rm -f *.o *.exe example example2 example3 bench repl repl-readline smoke_pr smoke
