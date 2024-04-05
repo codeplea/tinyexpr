@@ -692,9 +692,6 @@ te_expr *te_compile(const char *expression, const te_variable *variables, int va
 
 double te_interp(const char *expression, int *error) {
     te_expr *n = te_compile(expression, 0, 0, error);
-    if (n == NULL) {
-        return NAN;
-    }
 
     double ret;
     if (n) {
