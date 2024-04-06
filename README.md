@@ -30,6 +30,18 @@ the standard C math functions and runtime binding of variables.
 TinyExpr is self-contained in two files: `tinyexpr.c` and `tinyexpr.h`. To use
 TinyExpr, simply add those two files to your project.
 
+Alternatively, you can build and install tinyexpr using [vcpkg](https://github.com/Microsoft/vcpkg/) dependency manager:
+
+```C
+    git clone https://github.com/Microsoft/vcpkg.git
+    cd vcpkg
+    ./bootstrap-vcpkg.sh  # ./bootstrap-vcpkg.bat for Windows
+    ./vcpkg integrate install
+    ./vcpkg install tinyexpr
+```
+
+The tinyexpr port in vcpkg is kept up to date by Microsoft team members and community contributors. If the version is out of date, please [create an issue or pull request](https://github.com/Microsoft/vcpkg) on the vcpkg repository.
+
 ## Short Example
 
 Here is a minimal example to evaluate an expression at runtime.
