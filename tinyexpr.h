@@ -54,7 +54,7 @@ enum {
 
 typedef struct te_variable {
     const char *name;
-    const void *address;
+    void *address;
     int type;
     void *context;
 } te_variable;
@@ -63,11 +63,11 @@ typedef struct te_variable {
 
 /* Parses the input expression, evaluates it, and frees it. */
 /* Returns NaN on error. */
-double te_interp(const char *expression, int *error);
+double te_interp(const char *expression, size_t *error);
 
 /* Parses the input expression and binds variables. */
 /* Returns NULL on error. */
-te_expr *te_compile(const char *expression, const te_variable *variables, int var_count, int *error);
+te_expr *te_compile(const char *expression, const te_variable *variables, int var_count, size_t *error);
 
 /* Evaluates the expression. */
 double te_eval(const te_expr *n);
