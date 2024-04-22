@@ -67,7 +67,7 @@ typedef struct state {
     const char *start;
     const char *next;
     int type;
-    union {double value; const double *bound; const void *function;};
+    union {double value; const double *bound; void *function;};
     void *context;
 
     const te_variable *lookup;
@@ -192,7 +192,7 @@ static const te_variable functions[] = {
     {0, 0, 0, 0}
 };
 
-static const te_variable *find_builtin(const char *name, int len) {
+static const te_variable *find_builtin(const char *name, size_t len) {
     int imin = 0;
     int imax = sizeof(functions) / sizeof(te_variable) - 2;
 
@@ -213,7 +213,7 @@ static const te_variable *find_builtin(const char *name, int len) {
     return 0;
 }
 
-static const te_variable *find_lookup(const state *s, const char *name, int len) {
+static const te_variable *find_lookup(const state *s, const char *name, size_t len) {
     int iters;
     const te_variable *var;
     if (!s->lookup) return 0;
@@ -662,7 +662,7 @@ static void optimize(te_expr *n) {
 }
 
 
-te_expr *te_compile(const char *expression, const te_variable *variables, int var_count, int *error) {
+te_expr *te_compile(const char *expression, const te_variable *variables, int var_count, size_t *error) {
     state s;
     s.start = s.next = expression;
     s.lookup = variables;
@@ -690,7 +690,7 @@ te_expr *te_compile(const char *expression, const te_variable *variables, int va
 }
 
 
-double te_interp(const char *expression, int *error) {
+double te_interp(const char *expression, size_t *error) {
     te_expr *n = te_compile(expression, 0, 0, error);
 
     double ret;
