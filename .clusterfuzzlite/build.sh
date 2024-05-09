@@ -1,9 +1,11 @@
 #!/bin/bash
-find . -name "*.c" -exec $CC $CFLAGS -I./src -c {} \;
-find . -name "*.o" -exec cp {} . \;
+for file in "smoke.c tinyexpr.c repl.c benchmark.c"; do
+  $CC $CFLAGS -c ${file}
+done
 
-rm -f ./test*.o
 llvm-ar rcs libfuzz.a *.o
 
 
-$CC $CFLAGS $LIB_FUZZING_ENGINE $SRC/fuzzer.c -Wl,--whole-archive $SRC/tinyexpr/libfuzz.a -Wl,--allow-multiple-definition -I$SRC/tinyexpr/  -o $OUT/fuzzer
+$CC $CFLAGS $LIB_FUZZING_ENGINE $SRC/fuzzer.c \
+  -Wl,--whole-archive $SRC/tinyexpr/libfuzz.a -Wl,--allow-multiple-definition \
+  -I$SRC/tinyexpr/  -o $OUT/fuzzer
