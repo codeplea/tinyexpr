@@ -1,0 +1,13 @@
+# binaries from make
+bench
+example
+example2
+example3
+repl
+repl-readline
+smoke
+smoke_pr
+*.exe
+
+# object files
+*.o
