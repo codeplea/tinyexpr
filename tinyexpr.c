@@ -139,19 +139,29 @@ static double fac(double a) {/* simplest version of fac */
     return (double)result;
 }
 static double ncr(double n, double r) {
+    if (!isfinite(n) || !isfinite(r)) return NAN;
+
     if (n < 0.0 || r < 0.0 || n < r) return NAN;
     if (n > UINT_MAX || r > UINT_MAX) return INFINITY;
-    unsigned long int un = (unsigned int)(n), ur = (unsigned int)(r), i;
+
+    unsigned long int un = (unsigned int)(n);
+    unsigned long int ur = (unsigned int)(r);
+    unsigned long int i;
+
     unsigned long int result = 1;
+
     if (ur > un / 2) ur = un - ur;
+
     for (i = 1; i <= ur; i++) {
         if (result > ULONG_MAX / (un - ur + i))
             return INFINITY;
         result *= un - ur + i;
         result /= i;
     }
+
     return result;
 }
+
 static double npr(double n, double r) {return ncr(n, r) * fac(r);}
 
 #ifdef _MSC_VER
@@ -256,7 +266,7 @@ void next_token(state *s) {
                 const char *start;
                 start = s->next;
                 while (isalpha(s->next[0]) || isdigit(s->next[0]) || (s->next[0] == '_')) s->next++;
-                
+
                 const te_variable *var = find_lookup(s, start, s->next - start);
                 if (!var) var = find_builtin(start, s->next - start);
 
