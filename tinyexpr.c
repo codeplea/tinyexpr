@@ -236,7 +236,7 @@ static double negate(double a) {return -a;}
 static double comma(double a, double b) {(void)a; return b;}
 
 
-void next_token(state *s) {
+static void next_token(state *s) {
     s->type = TOK_NULL;
 
     do {
