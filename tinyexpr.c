@@ -252,10 +252,10 @@ void next_token(state *s) {
             s->type = TOK_NUMBER;
         } else {
             /* Look for a variable or builtin function call. */
-            if (isalpha(s->next[0])) {
+            if (isalpha((unsigned char)s->next[0])) {
                 const char *start;
                 start = s->next;
-                while (isalpha(s->next[0]) || isdigit(s->next[0]) || (s->next[0] == '_')) s->next++;
+                while (isalpha((unsigned char)s->next[0]) || isdigit((unsigned char)s->next[0]) || (s->next[0] == '_')) s->next++;
                 
                 const te_variable *var = find_lookup(s, start, s->next - start);
                 if (!var) var = find_builtin(start, s->next - start);
