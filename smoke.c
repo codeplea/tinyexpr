@@ -565,6 +565,11 @@ void test_optimize() {
         int err;
         te_expr *ex = te_compile(expr, 0, 0, &err);
         lok(ex);
+        if (!ex) {
+            /* te_compile() failed: record the failure via lok() above and
+             * skip this case instead of dereferencing NULL. */
+            continue;
+        }
 
         /* The answer should be know without
          * even running eval. */
@@ -812,6 +817,10 @@ void test_depth() {
 
         /* ((((...1...)))) */
         char *expr = malloc(depth * 2 + 2);
+        if (!expr) {
+            lok(0);
+            continue;
+        }
         memset(expr, '(', depth);
         expr[depth] = '1';
         memset(expr + depth + 1, ')', depth);
@@ -823,6 +832,10 @@ void test_depth() {
 
         /* sin sin sin ... 1 */
         expr = malloc(depth * 4 + 2);
+        if (!expr) {
+            lok(0);
+            continue;
+        }
         for (j = 0; j < depth; ++j) memcpy(expr + j * 4, "sin ", 4);
         expr[depth * 4] = '1';
         expr[depth * 4 + 1] = '\0';
