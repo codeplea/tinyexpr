@@ -833,6 +833,51 @@ void test_depth() {
         r = te_interp(expr, &err);
         lok(ok ? (err == 0) : (err != 0 && r != r));
         free(expr);
+
+        /* 1+1+1+...+1: a flat run of same-precedence operators builds a
+         * parse tree exactly as deep as nested parens do, even though
+         * parsing it never recurses through base(). It must be bounded
+         * the same way instead of overflowing the stack in te_eval(),
+         * te_free() or the constant-folding pass in te_compile(). */
+        expr = malloc((size_t)depth * 2 + 2);
+        if (!expr) { lok(0); continue; }
+        expr[0] = '1';
+        for (j = 0; j < depth; ++j) {
+            expr[1 + j * 2] = '+';
+            expr[2 + j * 2] = '1';
+        }
+        expr[depth * 2 + 1] = '\0';
+
+        r = te_interp(expr, &err);
+        lok(ok ? (err == 0 && r == depth + 1) : (err != 0 && r != r));
+        free(expr);
+    }
+
+    {
+        /* Two independent, deeply nested arguments to the same call must
+         * not have their depths added together: each is only as deep as
+         * it looks on its own, so atan2() of two 400-deep operands is
+         * still well within TE_MAX_DEPTH and must succeed. */
+        const int depth = 400;
+        char *nested = malloc((size_t)depth * 2 + 2);
+        lok(nested != NULL);
+        if (nested) {
+            memset(nested, '(', depth);
+            nested[depth] = '1';
+            memset(nested + depth + 1, ')', depth);
+            nested[depth * 2 + 1] = '\0';
+
+            char *expr = malloc(strlen(nested) * 2 + 16);
+            lok(expr != NULL);
+            if (expr) {
+                sprintf(expr, "atan2(%s,%s)", nested, nested);
+                int err;
+                double r = te_interp(expr, &err);
+                lok(err == 0 && fabs(r - atan2(1.0, 1.0)) < 1e-9);
+                free(expr);
+            }
+            free(nested);
+        }
     }
 }
 

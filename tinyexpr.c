@@ -90,6 +90,15 @@ typedef struct state {
 #define TE_MAX_DEPTH 512
 #endif
 
+/* te_eval(), te_free() and optimize() all walk the parsed expression
+   recursively, one call frame per level of the tree. base() already
+   refuses to nest more than TE_MAX_DEPTH deep so parsing itself can't
+   blow the stack, but a long run of same-precedence operators such as
+   "1+1+1+...+1" builds an equally deep tree without ever recursing
+   through base(), so it slipped past that guard. TE_CHAIN_GUARD applies
+   the same limit inside the iterative operator-chain parsers below. */
+#define TE_CHAIN_GUARD(...) if (++s->depth >= TE_MAX_DEPTH) { s->type = TOK_ERROR; __VA_ARGS__; return NULL; }
+
 static te_expr *new_expr(const int type, const te_expr *parameters[]) {
     const int arity = ARITY(type);
     const int psize = sizeof(void*) * arity;
@@ -529,7 +538,13 @@ static te_expr *base_impl(state *s) {
                 s->type = TOK_ERROR;
             } else {
                 int i;
+                const int arg_depth = s->depth;
                 for(i = 0; i < arity; i++) {
+                    /* Each argument is evaluated independently of its
+                       siblings, so it should be judged against the depth
+                       this call started at rather than accumulating
+                       across arguments. */
+                    s->depth = arg_depth;
                     next_token(s);
                     ret->parameters[i] = expr(s);
                     CHECK_NULL(ret->parameters[i], te_free(ret));
@@ -655,6 +670,8 @@ static te_expr *factor(state *s) {
     void **slot = NULL;
 
     while (s->type == TOK_INFIX && (s->function == pow)) {
+        TE_CHAIN_GUARD(te_free(ret));
+
         te_fun2 t = (te_fun2)s->function;
         next_token(s);
 
@@ -696,6 +713,8 @@ static te_expr *factor(state *s) {
     CHECK_NULL(ret);
 
     while (s->type == TOK_INFIX && (s->function == pow)) {
+        TE_CHAIN_GUARD(te_free(ret));
+
         te_fun2 t = (te_fun2)s->function;
         next_token(s);
         te_expr *p = power(s);
@@ -720,6 +739,8 @@ static te_expr *term(state *s) {
     CHECK_NULL(ret);
 
     while (s->type == TOK_INFIX && (s->function == mul || s->function == divide || s->function == fmod)) {
+        TE_CHAIN_GUARD(te_free(ret));
+
         te_fun2 t = (te_fun2)s->function;
         next_token(s);
         te_expr *f = factor(s);
@@ -742,6 +763,8 @@ static te_expr *sum_expr(state *s) {
     CHECK_NULL(ret);
 
     while (s->type == TOK_INFIX && (s->function == add || s->function == sub)) {
+        TE_CHAIN_GUARD(te_free(ret));
+
         te_fun2 t = (te_fun2)s->function;
         next_token(s);
         te_expr *te = term(s);
@@ -765,6 +788,8 @@ static te_expr *rel_expr(state *s) {
 
     while (s->type == TOK_INFIX && (s->function == greater || s->function == greater_eq ||
         s->function == lower || s->function == lower_eq)) {
+        TE_CHAIN_GUARD(te_free(ret));
+
         te_fun2 t = (te_fun2)s->function;
         next_token(s);
         te_expr *e = sum_expr(s);
@@ -787,6 +812,8 @@ static te_expr *eq_expr(state *s) {
     CHECK_NULL(ret);
 
     while (s->type == TOK_INFIX && (s->function == equal || s->function == not_equal)) {
+        TE_CHAIN_GUARD(te_free(ret));
+
         te_fun2 t = (te_fun2)s->function;
         next_token(s);
         te_expr *e = rel_expr(s);
@@ -809,6 +836,8 @@ static te_expr *and_expr(state *s) {
     CHECK_NULL(ret);
 
     while (s->type == TOK_INFIX && s->function == logical_and) {
+        TE_CHAIN_GUARD(te_free(ret));
+
         next_token(s);
         te_expr *e = eq_expr(s);
         CHECK_NULL(e, te_free(ret));
@@ -830,6 +859,8 @@ static te_expr *expr(state *s) {
     CHECK_NULL(ret);
 
     while (s->type == TOK_INFIX && s->function == logical_or) {
+        TE_CHAIN_GUARD(te_free(ret));
+
         next_token(s);
         te_expr *e = and_expr(s);
         CHECK_NULL(e, te_free(ret));
@@ -851,6 +882,8 @@ static te_expr *list(state *s) {
     CHECK_NULL(ret);
 
     while (s->type == TOK_SEP) {
+        TE_CHAIN_GUARD(te_free(ret));
+
         next_token(s);
         te_expr *e = expr(s);
         CHECK_NULL(e, te_free(ret));
