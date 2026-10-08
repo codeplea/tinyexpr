@@ -136,25 +136,38 @@ static double fac(double a) {/* simplest version of fac */
     if (a > UINT_MAX)
         return INFINITY;
     unsigned int ua = (unsigned int)(a);
-    unsigned long int result = 1, i;
+    unsigned long long int result = 1, i;
     for (i = 1; i <= ua; i++) {
-        if (i > ULONG_MAX / result)
+        if (i > ULLONG_MAX / result)
             return INFINITY;
         result *= i;
     }
     return (double)result;
 }
+static unsigned long long int gcd(unsigned long long int a, unsigned long long int b) {
+    while (b) {
+        unsigned long long int t = a % b;
+        a = b;
+        b = t;
+    }
+    return a;
+}
 static double ncr(double n, double r) {
     if (!(n >= 0.0) || !(r >= 0.0) || n < r) return NAN;
     if (n > UINT_MAX || r > UINT_MAX) return INFINITY;
-    unsigned long int un = (unsigned int)(n), ur = (unsigned int)(r), i;
-    unsigned long int result = 1;
+    unsigned long long int un = (unsigned int)(n), ur = (unsigned int)(r), i;
+    unsigned long long int result = 1;
     if (ur > un / 2) ur = un - ur;
     for (i = 1; i <= ur; i++) {
-        if (result > ULONG_MAX / (un - ur + i))
+        /* result * m / i is an exact integer, so reduce by gcd(result, i)
+         * first and the remaining divisor of i must divide m. */
+        unsigned long long int m = un - ur + i;
+        unsigned long long int g = gcd(result, i);
+        result /= g;
+        m /= i / g;
+        if (result > ULLONG_MAX / m)
             return INFINITY;
-        result *= un - ur + i;
-        result /= i;
+        result *= m;
     }
     return result;
 }
