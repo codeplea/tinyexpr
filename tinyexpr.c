@@ -268,6 +268,15 @@ static double negate_logical_not(double a) {return -(a == 0.0);}
 static double negate_logical_notnot(double a) {return -(a != 0.0);}
 
 
+/* Powers of ten up to 1e22 are exactly representable as doubles. Dividing
+   by one of these gives a correctly rounded result for literals with up to
+   15 significant digits, whereas multiplying by an inexact pow(10, -n) can
+   be off by one ulp (e.g. 0.3 would come out as 3 * 0.1). */
+static const double exact_pow10[] = {
+    1e0, 1e1, 1e2, 1e3, 1e4, 1e5, 1e6, 1e7, 1e8, 1e9, 1e10, 1e11,
+    1e12, 1e13, 1e14, 1e15, 1e16, 1e17, 1e18, 1e19, 1e20, 1e21, 1e22
+};
+
 static double parse_number(state *s) {
     /* Parses a decimal or hex constant manually, so that the result does
        not depend on LC_NUMERIC. Sets s->type. */
@@ -331,7 +340,13 @@ static double parse_number(state *s) {
         }
 
         /* The zero check keeps a huge exponent from producing 0 * inf. */
-        if (exponent && value != 0.0) value *= pow(10.0, exponent);
+        if (exponent && value != 0.0) {
+            if (exponent < 0 && exponent >= -22) {
+                value /= exact_pow10[-exponent];
+            } else {
+                value *= pow(10.0, exponent);
+            }
+        }
     }
 
     s->type = TOK_NUMBER;

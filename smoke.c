@@ -913,6 +913,29 @@ void test_number() {
             lok(err != 0);
         }
     }
+
+    /* Short decimal literals (up to 15 significant digits) must match strtod
+     * exactly, not just within the fuzz slack above. Scaling by an inexact
+     * pow(10, -n) made these one ulp off, so 0.1+0.2==0.3 was true. */
+    {
+        const char *exact[] = {
+            "0.3", "0.7", "867.4", "26.06", "522.526", "1.1", "2.675",
+            "0.0001", "123456.789", "9.87654321e-5", "4.35e-10", "1.5e-22",
+            "0.1", "0.2", "3.14159265358979"
+        };
+        int j;
+        for (j = 0; j < (int)(sizeof(exact) / sizeof(*exact)); ++j) {
+            int err;
+            const double expected = strtod(exact[j], 0);
+            const double got = te_interp(exact[j], &err);
+            lok(err == 0 && got == expected);
+            if (err != 0 || got != expected)
+                printf("FAILED: %s => %.17g, expected %.17g (err=%d)\n",
+                    exact[j], got, expected, err);
+        }
+        lok(te_interp("0.1+0.2==0.3", 0) == 0.0);
+        lok(te_interp("0.1+0.2", 0) == 0.1 + 0.2);
+    }
 }
 
 
