@@ -52,11 +52,16 @@ For log = natural log uncomment the next line. */
 #endif
 
 
-typedef double (*te_fun2)(double, double);
-
 enum {
     TOK_NULL = TE_CLOSURE7+1, TOK_ERROR, TOK_END, TOK_SEP,
     TOK_OPEN, TOK_CLOSE, TOK_NUMBER, TOK_VARIABLE, TOK_INFIX
+};
+
+/* Binary operator precedence, lowest first. PREC_NONE marks tokens that
+   are never a binary operator (e.g. unary "!"). */
+enum {
+    PREC_NONE, PREC_LIST, PREC_OR, PREC_AND, PREC_EQ,
+    PREC_REL, PREC_SUM, PREC_TERM, PREC_POW
 };
 
 
@@ -64,9 +69,9 @@ enum {TE_CONSTANT = 1};
 
 
 typedef struct state {
-    const char *start;
     const char *next;
     int type;
+    int prec;
     union {double value; const double *bound; const void *function;};
     void *context;
 
@@ -102,35 +107,40 @@ static te_expr *new_expr(const int type, const te_expr *parameters[]) {
         memcpy(ret->parameters, parameters, psize);
     }
     ret->type = type;
-    ret->bound = 0;
+    return ret;
+}
+
+
+static te_expr *new_fun(int type, const void *function, te_expr *a, te_expr *b) {
+    /* Builds a pure function node over a (and b, for arity 2), taking
+       ownership of both: on any failure they are freed and NULL returned. */
+    te_expr *ret = !a || (ARITY(type) == 2 && !b) ? NULL : NEW_EXPR(type, a, b);
+    if (!ret) {
+        te_free(a);
+        te_free(b);
+        return NULL;
+    }
+    ret->function = function;
     return ret;
 }
 
 
 void te_free_parameters(te_expr *n) {
+    int i;
     if (!n) return;
-    switch (TYPE_MASK(n->type)) {
-        case TE_FUNCTION7: case TE_CLOSURE7: te_free(n->parameters[6]);     /* Falls through. */
-        case TE_FUNCTION6: case TE_CLOSURE6: te_free(n->parameters[5]);     /* Falls through. */
-        case TE_FUNCTION5: case TE_CLOSURE5: te_free(n->parameters[4]);     /* Falls through. */
-        case TE_FUNCTION4: case TE_CLOSURE4: te_free(n->parameters[3]);     /* Falls through. */
-        case TE_FUNCTION3: case TE_CLOSURE3: te_free(n->parameters[2]);     /* Falls through. */
-        case TE_FUNCTION2: case TE_CLOSURE2: te_free(n->parameters[1]);     /* Falls through. */
-        case TE_FUNCTION1: case TE_CLOSURE1: te_free(n->parameters[0]);
-    }
+    for (i = 0; i < ARITY(n->type); ++i) te_free(n->parameters[i]);
 }
 
 
 void te_free(te_expr *n) {
-    if (!n) return;
-    te_free_parameters(n);
+    if (n) te_free_parameters(n);
     free(n);
 }
 
 
 static double pi(void) {return 3.14159265358979323846;}
 static double e(void) {return 2.71828182845904523536;}
-static double fac(double a) {/* simplest version of fac */
+static double fac(double a) {
     if (!(a >= 0.0))
         return NAN;
     if (a > UINT_MAX)
@@ -212,39 +222,26 @@ static const te_variable functions[] = {
 };
 
 static const te_variable *find_builtin(const char *name, int len) {
-    int imin = 0;
-    int imax = sizeof(functions) / sizeof(te_variable) - 2;
+    int imin = 0, imax = sizeof(functions) / sizeof(te_variable) - 2;
 
-    /*Binary search.*/
     while (imax >= imin) {
-        const int i = (imin + ((imax-imin)/2));
+        const int i = imin + (imax - imin) / 2;
         int c = strncmp(name, functions[i].name, len);
         if (!c) c = '\0' - functions[i].name[len];
-        if (c == 0) {
-            return functions + i;
-        } else if (c > 0) {
-            imin = i + 1;
-        } else {
-            imax = i - 1;
-        }
+        if (c == 0) return functions + i;
+        if (c > 0) imin = i + 1; else imax = i - 1;
     }
-
     return 0;
 }
 
 static const te_variable *find_lookup(const state *s, const char *name, int len) {
-    int iters;
-    const te_variable *var;
-    if (!s->lookup) return 0;
-
-    for (var = s->lookup, iters = s->lookup_len; iters; ++var, --iters) {
-        if (strncmp(name, var->name, len) == 0 && var->name[len] == '\0') {
-            return var;
-        }
+    int i;
+    for (i = 0; s->lookup && i < s->lookup_len; ++i) {
+        const te_variable *var = s->lookup + i;
+        if (strncmp(name, var->name, len) == 0 && var->name[len] == '\0') return var;
     }
     return 0;
 }
-
 
 
 static double add(double a, double b) {return a + b;}
@@ -268,10 +265,8 @@ static double negate_logical_not(double a) {return -(a == 0.0);}
 static double negate_logical_notnot(double a) {return -(a != 0.0);}
 
 
-/* Powers of ten up to 1e22 are exactly representable as doubles. Dividing
-   by one of these gives a correctly rounded result for literals with up to
-   15 significant digits, whereas multiplying by an inexact pow(10, -n) can
-   be off by one ulp (e.g. 0.3 would come out as 3 * 0.1). */
+/* Powers of ten up to 1e22 are exact doubles, so dividing by one gives a
+   correctly rounded literal where multiplying by pow(10, -n) was an ulp off. */
 static const double exact_pow10[] = {
     1e0, 1e1, 1e2, 1e3, 1e4, 1e5, 1e6, 1e7, 1e8, 1e9, 1e10, 1e11,
     1e12, 1e13, 1e14, 1e15, 1e16, 1e17, 1e18, 1e19, 1e20, 1e21, 1e22
@@ -285,7 +280,6 @@ static double parse_number(state *s) {
 
     if (p[0] == '0' && (p[1] == 'x' || p[1] == 'X') &&
         isxdigit((unsigned char)p[2])) {
-        /* Hex constant, e.g. 0x57CEF7. */
         p += 2;
         while (isxdigit((unsigned char)p[0])) {
             const char c = p[0];
@@ -355,140 +349,79 @@ static double parse_number(state *s) {
 }
 
 
+static void infix(state *s, const void *function, int prec) {
+    s->type = TOK_INFIX;
+    s->function = function;
+    s->prec = prec;
+}
+
+static int match(state *s, char c) {
+    if (s->next[0] != c) return 0;
+    s->next++;
+    return 1;
+}
+
 static void next_token(state *s) {
     s->type = TOK_NULL;
+    s->prec = PREC_NONE;
 
     do {
-
-        if (!*s->next){
+        if (!*s->next) {
             s->type = TOK_END;
             return;
         }
 
-        /* Try reading a number. */
-        if ((s->next[0] >= '0' && s->next[0] <= '9') || s->next[0] == '.') {
+        if (isdigit((unsigned char)s->next[0]) || s->next[0] == '.') {
             s->value = parse_number(s);
-        } else {
-            /* Look for a variable or builtin function call. */
-            if (isalpha((unsigned char)s->next[0])) {
-                const char *start;
-                start = s->next;
-                while (isalpha((unsigned char)s->next[0]) || isdigit((unsigned char)s->next[0]) || (s->next[0] == '_')) s->next++;
-                
-                const te_variable *var = find_lookup(s, start, s->next - start);
-                if (!var) var = find_builtin(start, s->next - start);
+        } else if (isalpha((unsigned char)s->next[0])) {
+            const char *start = s->next;
+            while (isalnum((unsigned char)s->next[0]) || s->next[0] == '_') s->next++;
 
-                if (!var) {
-                    s->type = TOK_ERROR;
-                } else {
-                    switch(TYPE_MASK(var->type))
-                    {
-                        case TE_VARIABLE:
-                            s->type = TOK_VARIABLE;
-                            s->bound = var->address;
-                            break;
+            const te_variable *var = find_lookup(s, start, s->next - start);
+            if (!var) var = find_builtin(start, s->next - start);
 
-                        case TE_CLOSURE0: case TE_CLOSURE1: case TE_CLOSURE2: case TE_CLOSURE3:         /* Falls through. */
-                        case TE_CLOSURE4: case TE_CLOSURE5: case TE_CLOSURE6: case TE_CLOSURE7:         /* Falls through. */
-                            s->context = var->context;                                                  /* Falls through. */
-
-                        case TE_FUNCTION0: case TE_FUNCTION1: case TE_FUNCTION2: case TE_FUNCTION3:     /* Falls through. */
-                        case TE_FUNCTION4: case TE_FUNCTION5: case TE_FUNCTION6: case TE_FUNCTION7:     /* Falls through. */
-                            s->type = var->type;
-                            s->function = var->address;
-                            break;
-                    }
-                }
-
+            if (!var) {
+                s->type = TOK_ERROR;
+            } else if (TYPE_MASK(var->type) == TE_VARIABLE) {
+                s->type = TOK_VARIABLE;
+                s->bound = var->address;
+            } else if (IS_FUNCTION(var->type) != IS_CLOSURE(var->type)) {
+                if (IS_CLOSURE(var->type)) s->context = var->context;
+                s->type = var->type;
+                s->function = var->address;
             } else {
-                /* Look for an operator or special character. */
-                switch (s->next++[0]) {
-                    case '+': s->type = TOK_INFIX; s->function = add; break;
-                    case '-': s->type = TOK_INFIX; s->function = sub; break;
-                    case '*': s->type = TOK_INFIX; s->function = mul; break;
-                    case '/': s->type = TOK_INFIX; s->function = divide; break;
-                    case '^': s->type = TOK_INFIX; s->function = pow; break;
-                    case '%': s->type = TOK_INFIX; s->function = fmod; break;
-                    case '!':
-                        if (s->next++[0] == '=') {
-                            s->type = TOK_INFIX; s->function = not_equal;
-                        } else {
-                            s->next--;
-                            s->type = TOK_INFIX; s->function = logical_not;
-                        }
-                        break;
-                    case '=':
-                        if (s->next++[0] == '=') {
-                            s->type = TOK_INFIX; s->function = equal;
-                        } else {
-                            s->next--;
-                            s->type = TOK_ERROR;
-                        }
-                        break;
-                    case '<':
-                        if (s->next++[0] == '=') {
-                            s->type = TOK_INFIX; s->function = lower_eq;
-                        } else {
-                            s->next--;
-                            s->type = TOK_INFIX; s->function = lower;
-                        }
-                        break;
-                    case '>':
-                        if (s->next++[0] == '=') {
-                            s->type = TOK_INFIX; s->function = greater_eq;
-                        } else {
-                            s->next--;
-                            s->type = TOK_INFIX; s->function = greater;
-                        }
-                        break;
-                    case '&':
-                        if (s->next++[0] == '&') {
-                            s->type = TOK_INFIX; s->function = logical_and;
-                        } else {
-                            s->next--;
-                            s->type = TOK_ERROR;
-                        }
-                        break;
-                    case '|':
-                        if (s->next++[0] == '|') {
-                            s->type = TOK_INFIX; s->function = logical_or;
-                        } else {
-                            s->next--;
-                            s->type = TOK_ERROR;
-                        }
-                        break;
-                    case '(': s->type = TOK_OPEN; break;
-                    case ')': s->type = TOK_CLOSE; break;
-                    case ',': s->type = TOK_SEP; break;
-                    case ' ': case '\t': case '\n': case '\r': break;
-                    default: s->type = TOK_ERROR; break;
-                }
+                /* Not a type the header defines. */
+                s->type = TOK_ERROR;
+            }
+        } else {
+            switch (s->next++[0]) {
+                case '+': infix(s, add, PREC_SUM); break;
+                case '-': infix(s, sub, PREC_SUM); break;
+                case '*': infix(s, mul, PREC_TERM); break;
+                case '/': infix(s, divide, PREC_TERM); break;
+                case '^': infix(s, pow, PREC_POW); break;
+                case '%': infix(s, fmod, PREC_TERM); break;
+                case '!': if (match(s, '=')) infix(s, not_equal, PREC_EQ); else infix(s, logical_not, PREC_NONE); break;
+                case '=': if (match(s, '=')) infix(s, equal, PREC_EQ); else s->type = TOK_ERROR; break;
+                case '<': if (match(s, '=')) infix(s, lower_eq, PREC_REL); else infix(s, lower, PREC_REL); break;
+                case '>': if (match(s, '=')) infix(s, greater_eq, PREC_REL); else infix(s, greater, PREC_REL); break;
+                case '&': if (match(s, '&')) infix(s, logical_and, PREC_AND); else s->type = TOK_ERROR; break;
+                case '|': if (match(s, '|')) infix(s, logical_or, PREC_OR); else s->type = TOK_ERROR; break;
+                case '(': s->type = TOK_OPEN; break;
+                case ')': s->type = TOK_CLOSE; break;
+                case ',': s->type = TOK_SEP; s->function = comma; s->prec = PREC_LIST; break;
+                case ' ': case '\t': case '\n': case '\r': break;
+                default: s->type = TOK_ERROR; break;
             }
         }
     } while (s->type == TOK_NULL);
 }
 
 
-static te_expr *list(state *s);
-static te_expr *expr(state *s);
+static te_expr *binary(state *s, int prec);
 static te_expr *power(state *s);
 
-static te_expr *base_impl(state *s);
-
 static te_expr *base(state *s) {
-    /* Guard against stack overflow from deeply nested expressions. */
-    if (s->depth >= TE_MAX_DEPTH) {
-        s->type = TOK_ERROR;
-        return NULL;
-    }
-
-    s->depth++;
-    te_expr *ret = base_impl(s);
-    s->depth--;
-    return ret;
-}
-
-static te_expr *base_impl(state *s) {
     /* <base>      =    <constant> | <variable> | <function-0> {"(" ")"} | <function-1> <power> | <function-X> "(" <expr> {"," <expr>} ")" | "(" <list> ")" */
     te_expr *ret;
     int arity;
@@ -510,40 +443,10 @@ static te_expr *base_impl(state *s) {
             next_token(s);
             break;
 
-        case TE_FUNCTION0:
-        case TE_CLOSURE0:
-            ret = new_expr(s->type, 0);
-            CHECK_NULL(ret);
-
-            ret->function = s->function;
-            if (IS_CLOSURE(s->type)) ret->parameters[0] = s->context;
-            next_token(s);
-            if (s->type == TOK_OPEN) {
-                next_token(s);
-                if (s->type != TOK_CLOSE) {
-                    s->type = TOK_ERROR;
-                } else {
-                    next_token(s);
-                }
-            }
-            break;
-
-        case TE_FUNCTION1:
-        case TE_CLOSURE1:
-            ret = new_expr(s->type, 0);
-            CHECK_NULL(ret);
-
-            ret->function = s->function;
-            if (IS_CLOSURE(s->type)) ret->parameters[1] = s->context;
-            next_token(s);
-            ret->parameters[0] = power(s);
-            CHECK_NULL(ret->parameters[0], te_free(ret));
-            break;
-
-        case TE_FUNCTION2: case TE_FUNCTION3: case TE_FUNCTION4:
-        case TE_FUNCTION5: case TE_FUNCTION6: case TE_FUNCTION7:
-        case TE_CLOSURE2: case TE_CLOSURE3: case TE_CLOSURE4:
-        case TE_CLOSURE5: case TE_CLOSURE6: case TE_CLOSURE7:
+        case TE_FUNCTION0: case TE_FUNCTION1: case TE_FUNCTION2: case TE_FUNCTION3:
+        case TE_FUNCTION4: case TE_FUNCTION5: case TE_FUNCTION6: case TE_FUNCTION7:
+        case TE_CLOSURE0: case TE_CLOSURE1: case TE_CLOSURE2: case TE_CLOSURE3:
+        case TE_CLOSURE4: case TE_CLOSURE5: case TE_CLOSURE6: case TE_CLOSURE7:
             arity = ARITY(s->type);
 
             ret = new_expr(s->type, 0);
@@ -553,31 +456,35 @@ static te_expr *base_impl(state *s) {
             if (IS_CLOSURE(s->type)) ret->parameters[arity] = s->context;
             next_token(s);
 
-            if (s->type != TOK_OPEN) {
-                s->type = TOK_ERROR;
-            } else {
-                int i;
-                for(i = 0; i < arity; i++) {
-                    next_token(s);
-                    ret->parameters[i] = expr(s);
+            if (arity == 1) {
+                ret->parameters[0] = power(s);
+                CHECK_NULL(ret->parameters[0], te_free(ret));
+            } else if (s->type == TOK_OPEN) {
+                int i = 0;
+                next_token(s);
+                while (i < arity) {
+                    ret->parameters[i] = binary(s, PREC_OR);
                     CHECK_NULL(ret->parameters[i], te_free(ret));
-
-                    if(s->type != TOK_SEP) {
-                        break;
+                    i++;
+                    if (i < arity) {
+                        if (s->type != TOK_SEP) break;
+                        next_token(s);
                     }
                 }
-                if(s->type != TOK_CLOSE || i != arity - 1) {
+                if (i != arity || s->type != TOK_CLOSE) {
                     s->type = TOK_ERROR;
                 } else {
                     next_token(s);
                 }
+            } else if (arity != 0) {
+                /* Parentheses are optional only on a 0-arity function. */
+                s->type = TOK_ERROR;
             }
-
             break;
 
         case TOK_OPEN:
             next_token(s);
-            ret = list(s);
+            ret = binary(s, PREC_LIST);
             CHECK_NULL(ret);
 
             if (s->type != TOK_CLOSE) {
@@ -602,65 +509,39 @@ static te_expr *base_impl(state *s) {
 
 static te_expr *power(state *s) {
     /* <power>     =    {("-" | "+" | "!")} <base> */
-    int sign = 1;
-    while (s->type == TOK_INFIX && (s->function == add || s->function == sub)) {
-        if (s->function == sub) sign = -sign;
-        next_token(s);
-    }
+    static double (*const unary[2][3])(double) = {
+        {NULL, logical_not, logical_notnot},
+        {negate, negate_logical_not, negate_logical_notnot}
+    };
+    int sign = 1, logical = 0;
 
-    int logical = 0;
+    /* A sign after a "!" is dropped, since !(-x) == !x. */
     while (s->type == TOK_INFIX && (s->function == add || s->function == sub || s->function == logical_not)) {
-        if (s->function == logical_not) {
-            if (logical == 0) {
-                logical = -1;
-            } else {
-                logical = -logical;
-            }
-        }
+        if (s->function == logical_not) logical = logical == 1 ? 2 : 1;
+        else if (!logical && s->function == sub) sign = -sign;
         next_token(s);
     }
 
-    te_expr *ret;
+    double (*const f)(double) = unary[sign != 1][logical];
 
-    if (sign == 1) {
-        if (logical == 0) {
-            ret = base(s);
-        } else {
-            te_expr *b = base(s);
-            CHECK_NULL(b);
-
-            ret = NEW_EXPR(TE_FUNCTION1 | TE_FLAG_PURE, b);
-            CHECK_NULL(ret, te_free(b));
-
-            if (logical == -1) {
-                ret->function = logical_not;
-            } else {
-                ret->function = logical_notnot;
-            }
-        }
-    } else {
-        te_expr *b = base(s);
-        CHECK_NULL(b);
-
-        ret = NEW_EXPR(TE_FUNCTION1 | TE_FLAG_PURE, b);
-        CHECK_NULL(ret, te_free(b));
-
-        if (logical == 0) {
-            ret->function = negate;
-        } else if (logical == -1) {
-            ret->function = negate_logical_not;
-        } else {
-            ret->function = negate_logical_notnot;
-        }
+    if (s->depth >= TE_MAX_DEPTH) {
+        s->type = TOK_ERROR;
+        return NULL;
     }
+    s->depth++;
+    te_expr *ret = base(s);
+    s->depth--;
+
+    if (f) ret = new_fun(TE_FUNCTION1 | TE_FLAG_PURE, f, ret, NULL);
 
     /* Distinguishes "-1" from "(-1)" for factor(), which must only hoist
        unary operators actually written to the left of a "^". Set last so
        nested parsing inside base() can't clobber it. */
-    s->applied_unary = (sign != 1 || logical != 0);
+    s->applied_unary = f != NULL;
 
     return ret;
 }
+
 
 #ifdef TE_POW_FROM_RIGHT
 static te_expr *factor(state *s) {
@@ -682,8 +563,7 @@ static te_expr *factor(state *s) {
        so the slot moves inside the unary node. */
     void **slot = NULL;
 
-    while (s->type == TOK_INFIX && (s->function == pow)) {
-        te_fun2 t = (te_fun2)s->function;
+    while (s->type == TOK_INFIX && s->function == pow) {
         next_token(s);
 
         te_expr *p = power(s);
@@ -694,200 +574,53 @@ static te_expr *factor(state *s) {
             te_expr *insert = NEW_EXPR(TE_FUNCTION2 | TE_FLAG_PURE, *slot, p);
             CHECK_NULL(insert, te_free(p), te_free(ret));
 
-            insert->function = t;
+            insert->function = pow;
             *slot = insert;
             slot = p_unary ? &p->parameters[0] : &insert->parameters[1];
         } else {
-            te_expr *prev = ret;
-            ret = NEW_EXPR(TE_FUNCTION2 | TE_FLAG_PURE, ret, p);
-            CHECK_NULL(ret, te_free(p), te_free(prev));
-
-            ret->function = t;
+            ret = new_fun(TE_FUNCTION2 | TE_FLAG_PURE, pow, ret, p);
+            CHECK_NULL(ret);
             slot = p_unary ? &p->parameters[0] : &ret->parameters[1];
         }
     }
 
     if (left_function) {
-        te_expr *prev = ret;
-        ret = NEW_EXPR(TE_FUNCTION1 | TE_FLAG_PURE, ret);
-        CHECK_NULL(ret, te_free(prev));
-
-        ret->function = left_function;
+        ret = new_fun(TE_FUNCTION1 | TE_FLAG_PURE, left_function, ret, NULL);
+        CHECK_NULL(ret);
     }
 
     return ret;
 }
 #else
 static te_expr *factor(state *s) {
-    /* <factor>    =    <power> {"^" <power>} */
-    te_expr *ret = power(s);
-    CHECK_NULL(ret);
-
-    while (s->type == TOK_INFIX && (s->function == pow)) {
-        te_fun2 t = (te_fun2)s->function;
-        next_token(s);
-        te_expr *p = power(s);
-        CHECK_NULL(p, te_free(ret));
-
-        te_expr *prev = ret;
-        ret = NEW_EXPR(TE_FUNCTION2 | TE_FLAG_PURE, ret, p);
-        CHECK_NULL(ret, te_free(p), te_free(prev));
-
-        ret->function = t;
-    }
-
-    return ret;
+    return binary(s, PREC_POW);
 }
 #endif
 
 
-
-static te_expr *term(state *s) {
-    /* <term>      =    <factor> {("*" | "/" | "%") <factor>} */
-    te_expr *ret = factor(s);
-    CHECK_NULL(ret);
-
-    while (s->type == TOK_INFIX && (s->function == mul || s->function == divide || s->function == fmod)) {
-        te_fun2 t = (te_fun2)s->function;
-        next_token(s);
-        te_expr *f = factor(s);
-        CHECK_NULL(f, te_free(ret));
-
-        te_expr *prev = ret;
-        ret = NEW_EXPR(TE_FUNCTION2 | TE_FLAG_PURE, ret, f);
-        CHECK_NULL(ret, te_free(f), te_free(prev));
-
-        ret->function = t;
-    }
-
-    return ret;
+static te_expr *operand(state *s, int prec) {
+    return prec == PREC_POW ? power(s) :
+           prec == PREC_TERM ? factor(s) : binary(s, prec + 1);
 }
 
-
-static te_expr *sum_expr(state *s) {
-    /* <sum_expr>  =    <term> {("+" | "-") <term>} */
-    te_expr *ret = term(s);
+static te_expr *binary(state *s, int prec) {
+    /* Parses one precedence level of left-associative binary operators:
+       <list>      =    <or>     {"," <or>}
+       <or>        =    <and>    {"||" <and>}
+       <and>       =    <eq>     {"&&" <eq>}
+       <eq>        =    <rel>    {("==" | "!=") <rel>}
+       <rel>       =    <sum>    {("<" | "<=" | ">" | ">=") <sum>}
+       <sum>       =    <term>   {("+" | "-") <term>}
+       <term>      =    <factor> {("*" | "/" | "%") <factor>}
+       <pow>       =    <power>  {"^" <power>}   (only without TE_POW_FROM_RIGHT) */
+    te_expr *ret = operand(s, prec);
     CHECK_NULL(ret);
 
-    while (s->type == TOK_INFIX && (s->function == add || s->function == sub)) {
-        te_fun2 t = (te_fun2)s->function;
+    while ((s->type == TOK_INFIX || s->type == TOK_SEP) && s->prec == prec) {
+        const void *function = s->function;
         next_token(s);
-        te_expr *te = term(s);
-        CHECK_NULL(te, te_free(ret));
-
-        te_expr *prev = ret;
-        ret = NEW_EXPR(TE_FUNCTION2 | TE_FLAG_PURE, ret, te);
-        CHECK_NULL(ret, te_free(te), te_free(prev));
-
-        ret->function = t;
-    }
-
-    return ret;
-}
-
-
-static te_expr *rel_expr(state *s) {
-    /* <rel_expr>  =    <sum_expr> {(">" | ">=" | "<" | "<=") <sum_expr>} */
-    te_expr *ret = sum_expr(s);
-    CHECK_NULL(ret);
-
-    while (s->type == TOK_INFIX && (s->function == greater || s->function == greater_eq ||
-        s->function == lower || s->function == lower_eq)) {
-        te_fun2 t = (te_fun2)s->function;
-        next_token(s);
-        te_expr *e = sum_expr(s);
-        CHECK_NULL(e, te_free(ret));
-
-        te_expr *prev = ret;
-        ret = NEW_EXPR(TE_FUNCTION2 | TE_FLAG_PURE, ret, e);
-        CHECK_NULL(ret, te_free(e), te_free(prev));
-
-        ret->function = t;
-    }
-
-    return ret;
-}
-
-
-static te_expr *eq_expr(state *s) {
-    /* <eq_expr>   =    <rel_expr> {("==" | "!=") <rel_expr>} */
-    te_expr *ret = rel_expr(s);
-    CHECK_NULL(ret);
-
-    while (s->type == TOK_INFIX && (s->function == equal || s->function == not_equal)) {
-        te_fun2 t = (te_fun2)s->function;
-        next_token(s);
-        te_expr *e = rel_expr(s);
-        CHECK_NULL(e, te_free(ret));
-
-        te_expr *prev = ret;
-        ret = NEW_EXPR(TE_FUNCTION2 | TE_FLAG_PURE, ret, e);
-        CHECK_NULL(ret, te_free(e), te_free(prev));
-
-        ret->function = t;
-    }
-
-    return ret;
-}
-
-
-static te_expr *and_expr(state *s) {
-    /* <and_expr>  =    <eq_expr> {"&&" <eq_expr>} */
-    te_expr *ret = eq_expr(s);
-    CHECK_NULL(ret);
-
-    while (s->type == TOK_INFIX && s->function == logical_and) {
-        next_token(s);
-        te_expr *e = eq_expr(s);
-        CHECK_NULL(e, te_free(ret));
-
-        te_expr *prev = ret;
-        ret = NEW_EXPR(TE_FUNCTION2 | TE_FLAG_PURE, ret, e);
-        CHECK_NULL(ret, te_free(e), te_free(prev));
-
-        ret->function = logical_and;
-    }
-
-    return ret;
-}
-
-
-static te_expr *expr(state *s) {
-    /* <expr>      =    <and_expr> {"||" <and_expr>} */
-    te_expr *ret = and_expr(s);
-    CHECK_NULL(ret);
-
-    while (s->type == TOK_INFIX && s->function == logical_or) {
-        next_token(s);
-        te_expr *e = and_expr(s);
-        CHECK_NULL(e, te_free(ret));
-
-        te_expr *prev = ret;
-        ret = NEW_EXPR(TE_FUNCTION2 | TE_FLAG_PURE, ret, e);
-        CHECK_NULL(ret, te_free(e), te_free(prev));
-
-        ret->function = logical_or;
-    }
-
-    return ret;
-}
-
-
-static te_expr *list(state *s) {
-    /* <list>      =    <expr> {"," <expr>} */
-    te_expr *ret = expr(s);
-    CHECK_NULL(ret);
-
-    while (s->type == TOK_SEP) {
-        next_token(s);
-        te_expr *e = expr(s);
-        CHECK_NULL(e, te_free(ret));
-
-        te_expr *prev = ret;
-        ret = NEW_EXPR(TE_FUNCTION2 | TE_FLAG_PURE, ret, e);
-        CHECK_NULL(ret, te_free(e), te_free(prev));
-
-        ret->function = comma;
+        ret = new_fun(TE_FUNCTION2 | TE_FLAG_PURE, function, ret, operand(s, prec));
+        CHECK_NULL(ret);
     }
 
     return ret;
@@ -942,40 +675,34 @@ double te_eval(const te_expr *n) {
 #undef M
 
 static void optimize(te_expr *n) {
-    /* Evaluates as much as possible. */
-    if (n->type == TE_CONSTANT) return;
-    if (n->type == TE_VARIABLE) return;
+    /* Only functions flagged as pure can be folded. Constants and variables
+       never carry the flag. */
+    const int arity = ARITY(n->type);
+    int known = 1, i;
+    if (!IS_PURE(n->type)) return;
 
-    /* Only optimize out functions flagged as pure. */
-    if (IS_PURE(n->type)) {
-        const int arity = ARITY(n->type);
-        int known = 1;
-        int i;
-        for (i = 0; i < arity; ++i) {
-            optimize(n->parameters[i]);
-            if (((te_expr*)(n->parameters[i]))->type != TE_CONSTANT) {
-                known = 0;
-            }
-        }
-        if (known) {
-            const double value = te_eval(n);
-            te_free_parameters(n);
-            n->type = TE_CONSTANT;
-            n->value = value;
-        }
+    for (i = 0; i < arity; ++i) {
+        optimize(n->parameters[i]);
+        if (((te_expr*)(n->parameters[i]))->type != TE_CONSTANT) known = 0;
+    }
+    if (known) {
+        const double value = te_eval(n);
+        te_free_parameters(n);
+        n->type = TE_CONSTANT;
+        n->value = value;
     }
 }
 
 
 te_expr *te_compile(const char *expression, const te_variable *variables, int var_count, int *error) {
     state s;
-    s.start = s.next = expression;
+    s.next = expression;
     s.lookup = variables;
     s.lookup_len = var_count;
     s.depth = 0;
 
     next_token(&s);
-    te_expr *root = list(&s);
+    te_expr *root = binary(&s, PREC_LIST);
     if (root == NULL) {
         if (error) *error = -1;
         return NULL;
@@ -984,28 +711,22 @@ te_expr *te_compile(const char *expression, const te_variable *variables, int va
     if (s.type != TOK_END) {
         te_free(root);
         if (error) {
-            *error = (s.next - s.start);
+            *error = s.next - expression;
             if (*error == 0) *error = 1;
         }
-        return 0;
-    } else {
-        optimize(root);
-        if (error) *error = 0;
-        return root;
+        return NULL;
     }
+
+    optimize(root);
+    if (error) *error = 0;
+    return root;
 }
 
 
 double te_interp(const char *expression, int *error) {
     te_expr *n = te_compile(expression, 0, 0, error);
-
-    double ret;
-    if (n) {
-        ret = te_eval(n);
-        te_free(n);
-    } else {
-        ret = NAN;
-    }
+    const double ret = n ? te_eval(n) : NAN;
+    te_free(n);
     return ret;
 }
 
@@ -1017,10 +738,7 @@ static void pn (const te_expr *n, int depth) {
     case TE_CONSTANT: printf("%f\n", n->value); break;
     case TE_VARIABLE: printf("bound %p\n", n->bound); break;
 
-    case TE_FUNCTION0: case TE_FUNCTION1: case TE_FUNCTION2: case TE_FUNCTION3:
-    case TE_FUNCTION4: case TE_FUNCTION5: case TE_FUNCTION6: case TE_FUNCTION7:
-    case TE_CLOSURE0: case TE_CLOSURE1: case TE_CLOSURE2: case TE_CLOSURE3:
-    case TE_CLOSURE4: case TE_CLOSURE5: case TE_CLOSURE6: case TE_CLOSURE7:
+    default:
          arity = ARITY(n->type);
          printf("f%d", arity);
          for(i = 0; i < arity; i++) {
