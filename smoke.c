@@ -345,6 +345,17 @@ void test_variables() {
     te_expr *expr8 = te_compile("si x", lookup, 2, &err);
     lok(!expr8);
     lok(err);
+
+    /* A lookup entry whose type is not a variable, function or closure
+       must be a compile error, not silently skipped. */
+    double z = 1;
+    te_variable bogus[] = {{"z", &z, 7}, {"w", &z, TE_FUNCTION0 | TE_CLOSURE0}};
+    te_expr *expr9 = te_compile("z+1", bogus, 2, &err);
+    lok(!expr9);
+    lok(err);
+    te_expr *expr10 = te_compile("w+1", bogus, 2, &err);
+    lok(!expr10);
+    lok(err);
 }
 
 

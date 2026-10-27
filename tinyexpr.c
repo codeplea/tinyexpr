@@ -112,7 +112,7 @@ static te_expr *new_expr(const int type, const te_expr *parameters[]) {
 
 
 static te_expr *new_fun(int type, const void *function, te_expr *a, te_expr *b) {
-    /* Builds a pure function node over a (and b, for arity 2), taking
+    /* Builds a function node over a (and b, for arity 2), taking
        ownership of both: on any failure they are freed and NULL returned. */
     te_expr *ret = !a || (ARITY(type) == 2 && !b) ? NULL : NEW_EXPR(type, a, b);
     if (!ret) {
@@ -125,7 +125,7 @@ static te_expr *new_fun(int type, const void *function, te_expr *a, te_expr *b) 
 }
 
 
-void te_free_parameters(te_expr *n) {
+static void te_free_parameters(te_expr *n) {
     int i;
     if (!n) return;
     for (i = 0; i < ARITY(n->type); ++i) te_free(n->parameters[i]);
@@ -133,7 +133,7 @@ void te_free_parameters(te_expr *n) {
 
 
 void te_free(te_expr *n) {
-    if (n) te_free_parameters(n);
+    te_free_parameters(n);
     free(n);
 }
 
@@ -677,10 +677,10 @@ double te_eval(const te_expr *n) {
 static void optimize(te_expr *n) {
     /* Only functions flagged as pure can be folded. Constants and variables
        never carry the flag. */
-    const int arity = ARITY(n->type);
-    int known = 1, i;
     if (!IS_PURE(n->type)) return;
 
+    const int arity = ARITY(n->type);
+    int known = 1, i;
     for (i = 0; i < arity; ++i) {
         optimize(n->parameters[i]);
         if (((te_expr*)(n->parameters[i]))->type != TE_CONSTANT) known = 0;
